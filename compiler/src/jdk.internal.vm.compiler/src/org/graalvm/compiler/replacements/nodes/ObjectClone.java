@@ -26,9 +26,9 @@ package org.graalvm.compiler.replacements.nodes;
 
 import java.util.Collections;
 
-import org.graalvm.compiler.core.common.type.AbstractPointerStamp;
 import org.graalvm.compiler.core.common.type.ObjectStamp;
 import org.graalvm.compiler.core.common.type.Stamp;
+import org.graalvm.compiler.core.common.type.StampFactory;
 import org.graalvm.compiler.graph.NodeSourcePosition;
 import org.graalvm.compiler.nodes.ConstantNode;
 import org.graalvm.compiler.nodes.NodeView;
@@ -57,15 +57,12 @@ public interface ObjectClone extends StateSplit, VirtualizableAllocation, ArrayL
 
     int bci();
 
-    static Stamp computeStamp(ValueNode object, Stamp currentStamp) {
-        if (ObjectClone.getConcreteType(object.stamp(NodeView.DEFAULT)) != null) {
-            return AbstractPointerStamp.pointerNonNull(object.stamp(NodeView.DEFAULT));
+    default Stamp computeStamp(ValueNode object) {
+        Stamp objectStamp = object.stamp(NodeView.DEFAULT);
+        if (objectStamp instanceof ObjectStamp) {
+            objectStamp = objectStamp.join(StampFactory.objectNonNull());
         }
-        /*
-         * If this call can't be intrinsified don't report a non-null stamp, otherwise the stamp
-         * would change when this is lowered back to an invoke and we might lose a null check.
-         */
-        return AbstractPointerStamp.pointerMaybeNull(currentStamp);
+        return objectStamp;
     }
 
     /*
@@ -74,7 +71,7 @@ public interface ObjectClone extends StateSplit, VirtualizableAllocation, ArrayL
      *
      * If yes, then the exact type is returned, otherwise it returns null.
      */
-    static ResolvedJavaType getConcreteType(Stamp forStamp) {
+    default ResolvedJavaType getConcreteType(Stamp forStamp) {
         if (!(forStamp instanceof ObjectStamp)) {
             return null;
         }

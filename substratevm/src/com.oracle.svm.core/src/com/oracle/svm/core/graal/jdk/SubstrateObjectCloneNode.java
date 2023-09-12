@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2017, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,7 +24,6 @@
  */
 package com.oracle.svm.core.graal.jdk;
 
-import org.graalvm.compiler.core.common.type.ObjectStamp;
 import org.graalvm.compiler.core.common.type.StampFactory;
 import org.graalvm.compiler.core.common.type.StampPair;
 import org.graalvm.compiler.core.common.type.TypeReference;
@@ -54,17 +53,7 @@ public final class SubstrateObjectCloneNode extends BasicObjectCloneNode impleme
     @OptionalInput(InputType.State) protected FrameState stateBefore;
 
     protected SubstrateObjectCloneNode(MacroParams p) {
-        this(p, null, null);
-    }
-
-    private SubstrateObjectCloneNode(MacroParams p, FrameState stateBefore, FrameState stateAfter) {
-        super(TYPE, p, stateAfter);
-        this.stateBefore = stateBefore;
-    }
-
-    @Override
-    protected SubstrateObjectCloneNode duplicateWithNewStamp(ObjectStamp newStamp) {
-        return new SubstrateObjectCloneNode(copyParamsWithImprovedStamp(newStamp), stateBefore(), stateAfter());
+        super(TYPE, p);
     }
 
     @Override
