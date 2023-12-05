@@ -202,8 +202,7 @@ public final class AArch64ArrayRegionCompareToOp extends AArch64ComplexVectorOp 
         asm.neon.eorVVV(FullReg, vecTmp1, vecArrayA1, vecArrayB1);
         asm.neon.eorVVV(FullReg, vecTmp2, vecArrayA2, vecArrayB2);
         asm.neon.orrVVV(FullReg, vecTmp2, vecTmp2, vecTmp1);
-        vectorCheckZero(asm, vecTmp2, vecTmp2);
-        asm.branchConditionally(ConditionFlag.NE, diffFound);
+        cbnzVector(asm, ElementSize.Byte, vecTmp2, vecTmp2, tmp, false, diffFound);
         // if so, continue
         asm.cmp(64, maxStrideArray, refAddress);
         asm.branchConditionally(ConditionFlag.LO, vectorLoop);
@@ -218,8 +217,7 @@ public final class AArch64ArrayRegionCompareToOp extends AArch64ComplexVectorOp 
         asm.neon.eorVVV(FullReg, vecTmp1, vecArrayA1, vecArrayB1);
         asm.neon.eorVVV(FullReg, vecTmp2, vecArrayA2, vecArrayB2);
         asm.neon.orrVVV(FullReg, vecTmp2, vecTmp2, vecTmp1);
-        vectorCheckZero(asm, vecTmp2, vecTmp2);
-        asm.branchConditionally(ConditionFlag.NE, diffFound);
+        cbnzVector(asm, ElementSize.Byte, vecTmp2, vecTmp2, tmp, false, diffFound);
         asm.mov(64, ret, zr);
         asm.jmp(end);
 
@@ -239,8 +237,7 @@ public final class AArch64ArrayRegionCompareToOp extends AArch64ComplexVectorOp 
         asm.align(PREFERRED_BRANCH_TARGET_ALIGNMENT);
         asm.bind(diffFound);
         // check if vecArrayA1 and vecArrayB1 are equal
-        vectorCheckZero(asm, vecTmp1, vecTmp1);
-        asm.branchConditionally(ConditionFlag.NE, returnV1);
+        cbnzVector(asm, ElementSize.Byte, vecTmp1, vecTmp1, tmp, false, returnV1);
         calcReturnValue(asm, ret, vecArrayA2, vecArrayB2, vecArrayA1, vecArrayB1, vecMask, strideMax);
         asm.jmp(end);
 
