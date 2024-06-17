@@ -1036,7 +1036,7 @@ class LibffiBuilderProject(mx.AbstractNativeProject, mx_native.NativeDependency)
         self.out_dir = self.get_output_root()
         if mx.get_os() == 'windows':
             self.delegate = mx_native.DefaultNativeProject(suite, name, subDir, [], [], None,
-                                                           mx.join(self.out_dir, 'libffi-3.4.4'),
+                                                           mx.join(self.out_dir, 'libffi-3.4.6'),
                                                            'static_lib',
                                                            deliverable='ffi',
                                                            cflags=['-MD', '-O2', '-DFFI_BUILDING_DLL'])
@@ -1073,7 +1073,7 @@ class LibffiBuilderProject(mx.AbstractNativeProject, mx_native.NativeDependency)
                                                   'include/ffi.h',
                                                   'include/ffitarget.h'],
                                                  mx.join(self.out_dir, 'libffi-build'),
-                                                 mx.join(self.out_dir, 'libffi-3.4.4'))
+                                                 mx.join(self.out_dir, 'libffi-3.4.6'))
             configure_args = ['--disable-dependency-tracking',
                               '--disable-shared',
                               '--with-pic',
