@@ -1039,7 +1039,7 @@ class LibffiBuilderProject(mx.AbstractNativeProject, mx_native.NativeDependency)
                                                            mx.join(self.out_dir, 'libffi-3.4.6'),
                                                            'static_lib',
                                                            deliverable='ffi',
-                                                           cflags=['-MD', '-O2', '-DFFI_BUILDING_DLL'])
+                                                           cflags=['-MD', '-O2', '-DFFI_STATIC_BUILD'])
             self.delegate._source = dict(tree=['include',
                                                'src',
                                                mx.join('src', 'x86')],
