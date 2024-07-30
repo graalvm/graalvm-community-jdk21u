@@ -4,7 +4,7 @@
 
 2. Release branches shall be maintained by Oracle in `oracle/graal` for six months per GraalVM CE release. During that time, the community can request backports through pull requests against the corresponding release branch in `oracle/graal`.
 
-3. After six months and only for Java LTS releases that the community wants to support long term (e.g., 21), Oracle shall create a dedicated repository (e.g., `graalvm/graalvm-community-jdk21u`) to maintain community backports and version-specific bug fixes.
+3. After six months and only for Java LTS releases that the community wants to support long-term (e.g., 21), Oracle shall create a dedicated repository (e.g., `graalvm/graalvm-community-jdk21u`) to maintain community backports and version-specific bug fixes.
 
 4. Each repository shall be managed by one maintainer, appointed by Oracle, with the permission to approve and merge pull requests.
 
