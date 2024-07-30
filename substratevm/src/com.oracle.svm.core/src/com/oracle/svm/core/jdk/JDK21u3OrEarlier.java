@@ -1,11 +1,10 @@
 /*
- * Copyright (c) 2023, 2023, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2023, 2023, BELLSOFT. All rights reserved.
+ * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation. Oracle designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
  * by Oracle in the LICENSE file that accompanied this code.
  *
@@ -23,22 +22,19 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package com.oracle.svm.core.jdk;
 
-#ifdef __linux__
+import java.util.function.BooleanSupplier;
 
-#include <sys/syscall.h>
-#include <sys/types.h>
-#include <unistd.h>
+import org.graalvm.compiler.serviceprovider.JavaVersionUtil;
 
-/*
- * Based on os::Linux::gettid() from jdk-20-ga, see
- * https://github.com/openjdk/jdk20/blob/82749901b1497f524e53e47c45708c8e4a63c8b9/src/hotspot/os/linux/os_linux.cpp#L361
- *
- * syscall() uses varargs, so we can't use @CFunction.
- */
-pid_t getThreadId() {
-  return (pid_t)syscall(SYS_gettid);
+public class JDK21u3OrEarlier implements BooleanSupplier {
+
+    public static final boolean jdk21u3OrEarlier = JavaVersionUtil.JAVA_SPEC < 21 ||
+            (JavaVersionUtil.JAVA_SPEC == 21 && Runtime.version().update() <= 3);
+
+    @Override
+    public boolean getAsBoolean() {
+        return jdk21u3OrEarlier;
+    }
 }
-
-#endif
-
