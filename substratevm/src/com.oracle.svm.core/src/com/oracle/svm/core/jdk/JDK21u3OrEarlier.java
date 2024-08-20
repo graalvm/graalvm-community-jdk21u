@@ -31,7 +31,7 @@ import org.graalvm.compiler.serviceprovider.JavaVersionUtil;
 public class JDK21u3OrEarlier implements BooleanSupplier {
 
     public static final boolean jdk21u3OrEarlier = JavaVersionUtil.JAVA_SPEC < 21 ||
-            (JavaVersionUtil.JAVA_SPEC == 21 && Runtime.version().update() <= 3);
+                    (JavaVersionUtil.JAVA_SPEC == 21 && Runtime.version().update() <= 3);
 
     @Override
     public boolean getAsBoolean() {
