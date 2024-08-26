@@ -1138,7 +1138,7 @@ public class NativeImage {
          * only allow inlining when JIT compiling after n invocations. PROFILE_GWT is used to
          * profile "guard with test" method handles and speculate on a constant guard value, making
          * the other branch statically unreachable for JIT compilation.
-         * 
+         *
          * Both are used for example in the implementation of record hashCode/equals methods. We
          * disable this behavior in the image builder because for AOT compilation, profiling and
          * speculation are never useful. Instead, it prevents optimizing the method handles for AOT
