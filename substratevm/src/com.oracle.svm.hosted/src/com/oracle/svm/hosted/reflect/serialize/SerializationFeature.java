@@ -669,9 +669,6 @@ final class SerializationBuilder extends ConditionalConfigurationRegistry implem
 
     Class<?> addConstructorAccessor(Class<?> serializationTargetClass, Class<?> customTargetConstructorClass) {
         serializationSupport.registerSerializationTargetClass(serializationTargetClass);
-        if (serializationTargetClass.isArray() || Enum.class.isAssignableFrom(serializationTargetClass)) {
-            return null;
-        }
 
         // Don't generate SerializationConstructorAccessor class for Externalizable case
         if (Externalizable.class.isAssignableFrom(serializationTargetClass)) {
