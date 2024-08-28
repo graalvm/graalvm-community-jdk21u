@@ -41,6 +41,7 @@ import java.util.function.BooleanSupplier;
 
 import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.nativeimage.hosted.Feature;
+import org.graalvm.nativeimage.hosted.RuntimeProxyCreation;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -54,6 +55,7 @@ import com.oracle.svm.util.ModuleSupport;
 import jdk.jfr.Configuration;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
+import jdk.jfr.Unsigned;
 
 /** Base class for JFR unit tests. */
 public abstract class AbstractJfrTest {
@@ -195,5 +197,17 @@ class JfrTestFeature implements Feature {
          * com.oracle.svm.test.jfr.utils.poolparsers.ClassConstantPoolParser.parse
          */
         ModuleSupport.accessPackagesToClass(ModuleSupport.Access.OPEN, JfrTestFeature.class, false, "jdk.internal.vm.compiler", "org.graalvm.compiler.serviceprovider");
+    }
+
+    @Override
+    public void beforeAnalysis(BeforeAnalysisAccess access) {
+        /*
+         * Register proxies for event data assertion
+         *
+         * Unsigned added to be able to query RecordedObject.getLong() method, and this method
+         * checks if the value returned has the jdk.jfr.Unsigned. The jfr layer in HotSpot creates a
+         * proxy to query this information.
+         */
+        RuntimeProxyCreation.register(Unsigned.class);
     }
 }
