@@ -16,13 +16,14 @@ env:
   DB_PASSWORD: hibernate_orm_test
   DB_USER: hibernate_orm_test
   GRAALVM_HOME: ${{ github.workspace }}/graalvm
-  LABSJDK_HOME: ${{ github.workspace }}/jdk
+  JAVA_HOME: ${{ github.workspace }}/jdk
   LANG: en_US.UTF-8 # Workaround testsuite locale issue
   MX_GIT_CACHE: refcache
   MX_PATH: ${{ github.workspace }}/mx
   MX_PYTHON: python3.8
   NATIVE_TEST_MAVEN_ARGS: "-Dtest-containers -Dstart-containers -Dquarkus.native.native-image-xmx=5g -Dnative -Dnative.surefire.skip -Dformat.skip -Dno-descriptor-tests install -DskipDocs -Dquarkus.native.container-build=false"
   QUARKUS_PATH: ${{ github.workspace }}/quarkus
+  JDK_VERSION: "21"
 
 permissions: {}
 jobs:
@@ -69,13 +70,17 @@ jobs:
         key: ${{ runner.os }}-mx-${{ hashFiles('**/suite.py') }}
         restore-keys: |
           ${{ runner.os }}-mx-
-    - name: Fetch LabsJDK
+    - name: Get OpenJDK with static libs
       run: |
-        mkdir jdk-dl
-        ${MX_PATH}/mx --java-home= fetch-jdk --jdk-id labsjdk-ce-21 --to jdk-dl --alias ${LABSJDK_HOME}
+        curl -sL https://api.adoptium.net/v3/binary/latest/${JDK_VERSION}/ea/linux/x64/jdk/hotspot/normal/eclipse -o jdk.tar.gz
+        curl -sL https://api.adoptium.net/v3/binary/latest/${JDK_VERSION}/ea/linux/x64/staticlibs/hotspot/normal/eclipse -o jdk-static-libs.tar.gz
+        mkdir -p ${JAVA_HOME}
+        tar xf jdk.tar.gz -C ${JAVA_HOME} --strip-components=1
+        tar xf jdk-static-libs.tar.gz -C ${JAVA_HOME} --strip-components=1
+        echo ${JAVA_HOME}
+        ${JAVA_HOME}/bin/java --version
     - name: Build graalvm native-image
       run: |
-        export JAVA_HOME=${LABSJDK_HOME}
         cd substratevm
         ${MX_PATH}/mx --native=native-image,lib:jvmcicompiler --components="Native Image,LibGraal" build
         mv $(${MX_PATH}/mx --native=native-image,lib:jvmcicompiler --components="Native Image,LibGraal" graalvm-home) ${GRAALVM_HOME}
