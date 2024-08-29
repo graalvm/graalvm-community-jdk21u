@@ -16,7 +16,7 @@ env:
   DB_PASSWORD: hibernate_orm_test
   DB_USER: hibernate_orm_test
   GRAALVM_HOME: ${{ github.workspace }}/graalvm
-  JAVA_HOME: ${{ github.workspace }}/jdk
+  BOOTSTRAP_JAVA_HOME: ${{ github.workspace }}/jdk
   LANG: en_US.UTF-8 # Workaround testsuite locale issue
   MX_GIT_CACHE: refcache
   MX_PATH: ${{ github.workspace }}/mx
@@ -74,16 +74,16 @@ jobs:
       run: |
         curl -sL https://api.adoptium.net/v3/binary/latest/${JDK_VERSION}/ea/linux/x64/jdk/hotspot/normal/eclipse -o jdk.tar.gz
         curl -sL https://api.adoptium.net/v3/binary/latest/${JDK_VERSION}/ea/linux/x64/staticlibs/hotspot/normal/eclipse -o jdk-static-libs.tar.gz
-        mkdir -p ${JAVA_HOME}
-        tar xf jdk.tar.gz -C ${JAVA_HOME} --strip-components=1
-        tar xf jdk-static-libs.tar.gz -C ${JAVA_HOME} --strip-components=1
-        echo ${JAVA_HOME}
-        ${JAVA_HOME}/bin/java --version
+        mkdir -p ${BOOTSTRAP_JAVA_HOME}
+        tar xf jdk.tar.gz -C ${BOOTSTRAP_JAVA_HOME} --strip-components=1
+        tar xf jdk-static-libs.tar.gz -C ${BOOTSTRAP_JAVA_HOME} --strip-components=1
+        echo ${BOOTSTRAP_JAVA_HOME}
+        ${BOOTSTRAP_JAVA_HOME}/bin/java --version
     - name: Build graalvm native-image
       run: |
         cd substratevm
-        ${MX_PATH}/mx --native=native-image,lib:jvmcicompiler --components="Native Image,LibGraal" build
-        mv $(${MX_PATH}/mx --native=native-image,lib:jvmcicompiler --components="Native Image,LibGraal" graalvm-home) ${GRAALVM_HOME}
+        ${MX_PATH}/mx --java-home=${BOOTSTRAP_JAVA_HOME} --native=native-image,lib:jvmcicompiler --components="Native Image,LibGraal" build
+        mv $(${MX_PATH}/mx --java-home=${BOOTSTRAP_JAVA_HOME} --native=native-image,lib:jvmcicompiler --components="Native Image,LibGraal" graalvm-home) ${GRAALVM_HOME}
         ${GRAALVM_HOME}/bin/native-image --version
     - name: Tar GraalVM
       shell: bash
@@ -93,6 +93,11 @@ jobs:
       with:
         name: graalvm
         path: graalvm.tgz
+    - name: Use JDK 17 for Quarkus build
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 17
     - name: Build Quarkus
       run: |
         cd ${QUARKUS_PATH}
@@ -154,11 +159,11 @@ jobs:
         if: startsWith(matrix.os-name, 'ubuntu')
         shell: bash
         run: tar -xzf maven-repo.tgz -C ~
-      - uses: graalvm/setup-graalvm@v1
+      - name: Use JDK 17 for Quarkus build
+        uses: actions/setup-java@v4
         with:
-          version: 'latest'
-          java-version: '17'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          distribution: temurin
+          java-version: 17
       - name: Build with Maven
         if: startsWith(matrix.os-name, 'ubuntu')
         env:
