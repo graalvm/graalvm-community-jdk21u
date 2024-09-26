@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,18 +22,29 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.svm.core.jdk.proxy;
+package com.oracle.svm.core.configure;
 
-import org.graalvm.nativeimage.Platform;
-import org.graalvm.nativeimage.Platforms;
-import org.graalvm.nativeimage.impl.RuntimeProxyCreationSupport;
+import org.graalvm.nativeimage.impl.ConfigurationCondition;
 
-public interface DynamicProxyRegistry extends RuntimeProxyCreationSupport {
+import com.oracle.svm.core.TypeResult;
 
-    Class<?> getProxyClass(ClassLoader loader, Class<?>... interfaces);
+public interface ConfigurationConditionResolver {
 
-    boolean isProxyClass(Class<?> clazz);
+    static ConfigurationConditionResolver identityResolver() {
+        return new ConfigurationConditionResolver() {
+            @Override
+            public TypeResult<ConfigurationCondition> resolveCondition(ConfigurationCondition unresolvedCondition) {
+                return TypeResult.forType(unresolvedCondition.getTypeName(), unresolvedCondition);
+            }
 
-    @Platforms(Platform.HOSTED_ONLY.class)
-    Class<?> getProxyClassHosted(Class<?>... interfaces);
+            @Override
+            public ConfigurationCondition alwaysTrue() {
+                return ConfigurationCondition.alwaysTrue();
+            }
+        };
+    }
+
+    TypeResult<ConfigurationCondition> resolveCondition(ConfigurationCondition unresolvedCondition);
+
+    ConfigurationCondition alwaysTrue();
 }
