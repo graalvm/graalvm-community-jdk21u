@@ -289,7 +289,7 @@ public abstract class CCLinkerInvocation implements LinkerInvocation {
 
             additionalPreOptions.addAll(HostedLibCBase.singleton().getAdditionalLinkerOptions(imageKind));
 
-            if (SubstrateOptions.DeleteLocalSymbols.getValue()) {
+            if (SubstrateOptions.DeleteLocalSymbols.getValue() && !SubstrateOptions.StripDebugInfo.getValue()) {
                 additionalPreOptions.add("-Wl,-x");
             }
         }
@@ -396,7 +396,7 @@ public abstract class CCLinkerInvocation implements LinkerInvocation {
                 VMError.shouldNotReachHere(e);
             }
 
-            if (SubstrateOptions.DeleteLocalSymbols.getValue()) {
+            if (SubstrateOptions.DeleteLocalSymbols.getValue() && !SubstrateOptions.StripDebugInfo.getValue()) {
                 additionalPreOptions.add("-Wl,-x");
             }
 
