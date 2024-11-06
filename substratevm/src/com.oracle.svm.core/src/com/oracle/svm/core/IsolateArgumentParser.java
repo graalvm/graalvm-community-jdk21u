@@ -429,8 +429,9 @@ public class IsolateArgumentParser {
 
     @Fold
     public static int getOptionIndex(RuntimeOptionKey<?> key) {
-        for (int i = 0; i < OPTIONS.length; i++) {
-            if (OPTIONS[i] == key) {
+        RuntimeOptionKey<?>[] options = OPTIONS;
+        for (int i = 0; i < options.length; i++) {
+            if (options[i] == key) {
                 return i;
             }
         }
