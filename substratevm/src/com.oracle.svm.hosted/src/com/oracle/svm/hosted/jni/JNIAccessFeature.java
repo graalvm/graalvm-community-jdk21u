@@ -24,6 +24,8 @@
  */
 package com.oracle.svm.hosted.jni;
 
+import static com.oracle.svm.core.configure.ConfigurationParser.JNI_KEY;
+
 import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -61,7 +63,6 @@ import com.oracle.graal.pointsto.meta.AnalysisMethod;
 import com.oracle.graal.pointsto.meta.AnalysisType;
 import com.oracle.graal.pointsto.meta.AnalysisUniverse;
 import com.oracle.svm.core.config.ObjectLayout;
-import com.oracle.svm.core.configure.ConditionalElement;
 import com.oracle.svm.core.configure.ConfigurationFile;
 import com.oracle.svm.core.configure.ConfigurationFiles;
 import com.oracle.svm.core.configure.ReflectionConfigurationParser;
@@ -192,9 +193,13 @@ public class JNIAccessFeature implements Feature {
         runtimeSupport = new JNIRuntimeAccessibilitySupportImpl();
         ImageSingletons.add(RuntimeJNIAccessSupport.class, runtimeSupport);
 
-        ReflectionConfigurationParser<ConditionalElement<Class<?>>> parser = ConfigurationParserUtils.create(runtimeSupport, access.getImageClassLoader());
-        loadedConfigurations = ConfigurationParserUtils.parseAndRegisterConfigurations(parser, access.getImageClassLoader(), "JNI",
-                        ConfigurationFiles.Options.JNIConfigurationFiles, ConfigurationFiles.Options.JNIConfigurationResources, ConfigurationFile.JNI.getFileName());
+        ReflectionConfigurationParser<Class<?>> parser = ConfigurationParserUtils.create(JNI_KEY, true, runtimeSupport,
+                        access.getImageClassLoader());
+        loadedConfigurations = ConfigurationParserUtils.parseAndRegisterConfigurationsFromCombinedFile(parser, access.getImageClassLoader(), "JNI");
+        ReflectionConfigurationParser<Class<?>> legacyParser = ConfigurationParserUtils.create(null, false, runtimeSupport,
+                        access.getImageClassLoader());
+        loadedConfigurations += ConfigurationParserUtils.parseAndRegisterConfigurations(legacyParser, access.getImageClassLoader(), "JNI", ConfigurationFiles.Options.JNIConfigurationFiles,
+                        ConfigurationFiles.Options.JNIConfigurationResources, ConfigurationFile.JNI.getFileName());
     }
 
     private class JNIRuntimeAccessibilitySupportImpl extends ConditionalConfigurationRegistry
@@ -212,7 +217,9 @@ public class JNIAccessFeature implements Feature {
         public void register(ConfigurationCondition condition, boolean queriedOnly, Executable... methods) {
             requireNonNull(methods, "methods");
             abortIfSealed();
-            registerConditionalConfiguration(condition, () -> newMethods.addAll(Arrays.asList(methods)));
+            if (!queriedOnly) {
+                registerConditionalConfiguration(condition, () -> newMethods.addAll(Arrays.asList(methods)));
+            }
         }
 
         @Override

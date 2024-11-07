@@ -27,10 +27,16 @@ package com.oracle.svm.core.configure;
 import java.util.Collection;
 import java.util.Locale;
 
+import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.impl.ConfigurationCondition;
 import org.graalvm.nativeimage.impl.RuntimeResourceSupport;
 
 public interface ResourcesRegistry extends RuntimeResourceSupport {
+
+    @SuppressWarnings("unchecked")
+    static ResourcesRegistry singleton() {
+        return ImageSingletons.lookup(ResourcesRegistry.class);
+    }
 
     /**
      * @deprecated Use {@link RuntimeResourceSupport#addResources(ConfigurationCondition, String)}

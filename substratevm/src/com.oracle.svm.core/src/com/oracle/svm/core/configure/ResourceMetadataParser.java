@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,18 +22,32 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.svm.core.jdk.proxy;
+package com.oracle.svm.core.configure;
 
-import org.graalvm.nativeimage.Platform;
-import org.graalvm.nativeimage.Platforms;
-import org.graalvm.nativeimage.impl.RuntimeProxyCreationSupport;
+import java.net.URI;
 
-public interface DynamicProxyRegistry extends RuntimeProxyCreationSupport {
+import org.graalvm.collections.EconomicMap;
+import org.graalvm.nativeimage.impl.ConfigurationCondition;
 
-    Class<?> getProxyClass(ClassLoader loader, Class<?>... interfaces);
+final class ResourceMetadataParser extends ResourceConfigurationParser {
+    ResourceMetadataParser(ConfigurationConditionResolver conditionResolver, ResourcesRegistry registry, boolean strictConfiguration) {
+        super(conditionResolver, registry, strictConfiguration);
+    }
 
-    boolean isProxyClass(Class<?> clazz);
+    @Override
+    public void parseAndRegister(Object json, URI origin) {
+        Object resourcesJson = getFromGlobalFile(json, RESOURCES_KEY);
+        if (resourcesJson != null) {
+            parseGlobsObject(resourcesJson);
+        }
+        Object bundlesJson = getFromGlobalFile(json, BUNDLES_KEY);
+        if (bundlesJson != null) {
+            parseBundlesObject(bundlesJson);
+        }
+    }
 
-    @Platforms(Platform.HOSTED_ONLY.class)
-    Class<?> getProxyClassHosted(Class<?>... interfaces);
+    @Override
+    protected ConfigurationCondition parseCondition(EconomicMap<String, Object> data) {
+        return parseCondition(data, true);
+    }
 }
