@@ -41,6 +41,7 @@ import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 import org.graalvm.word.Pointer;
 import org.graalvm.word.UnsignedWord;
+import org.graalvm.word.WordFactory;
 
 import com.oracle.svm.core.MemoryWalker;
 import com.oracle.svm.core.NeverInline;
@@ -848,6 +849,34 @@ public final class HeapImpl extends Heap {
     private static Descriptor getTlabUnsafe(IsolateThread thread) {
         assert SubstrateDiagnostics.isFatalErrorHandlingThread() : "can cause crashes, so it may only be used while printing diagnostics";
         return ThreadLocalAllocation.getTlab(thread);
+    }
+
+    @Override
+    @Uninterruptible(reason = "Called during early startup.")
+    public boolean verifyImageHeapMapping() {
+        ImageHeapInfo info = HeapImpl.getImageHeapInfo();
+        writeToEachChunk(info.getFirstWritableAlignedChunk(), WordFactory.nullPointer());
+        return true;
+    }
+
+    @Uninterruptible(reason = "Called during early startup.")
+    private static void writeToEachChunk(HeapChunk.Header<?> firstChunk, HeapChunk.Header<?> lastChunk) {
+        HeapChunk.Header<?> curChunk = firstChunk;
+        while (curChunk.isNonNull()) {
+            Pointer begin = (Pointer) curChunk;
+            Pointer end = HeapChunk.getTopPointer(curChunk).subtract(1);
+
+            byte val = begin.readByte(0);
+            begin.writeByte(0, val);
+
+            val = end.readByte(0);
+            end.writeByte(0, val);
+
+            if (curChunk.equal(lastChunk)) {
+                break;
+            }
+            curChunk = HeapChunk.getNext(curChunk);
+        }
     }
 
     private static class DumpHeapSettingsAndStatistics extends DiagnosticThunk {

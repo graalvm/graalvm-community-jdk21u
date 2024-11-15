@@ -160,11 +160,6 @@ abstract class MemoryWalkerAccessBase implements MemoryWalker.NativeImageHeapReg
     }
 
     @Override
-    public UnsignedWord getStart(ImageHeapInfo info) {
-        return Word.objectToUntrackedPointer(getFirstObject(info));
-    }
-
-    @Override
     public UnsignedWord getSize(ImageHeapInfo info) {
         Pointer firstStart = Word.objectToUntrackedPointer(getFirstObject(info));
         if (firstStart.isNull()) { // no objects
@@ -195,10 +190,6 @@ abstract class MemoryWalkerAccessBase implements MemoryWalker.NativeImageHeapReg
         boolean alignedChunks = !hasHugeObjects;
         return ImageHeapWalker.walkPartitionInline(getFirstObject(region), getLastObject(region), visitor, alignedChunks);
     }
-
-    protected abstract Object getFirstObject(ImageHeapInfo info);
-
-    protected abstract Object getLastObject(ImageHeapInfo info);
 }
 
 final class ReadOnlyPrimitiveMemoryWalkerAccess extends MemoryWalkerAccessBase {
