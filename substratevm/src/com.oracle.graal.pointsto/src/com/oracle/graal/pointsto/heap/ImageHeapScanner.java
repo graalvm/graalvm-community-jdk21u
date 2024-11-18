@@ -174,8 +174,15 @@ public abstract class ImageHeapScanner {
         return data;
     }
 
-    void markTypeInstantiated(AnalysisType type, ScanReason reason) {
+    void markTypeReachable(AnalysisType type, ScanReason reason) {
         if (universe.sealed() && !type.isReachable()) {
+            throw AnalysisError.typeNotFound(type);
+        }
+        type.registerAsReachable(reason);
+    }
+
+    void markTypeInstantiated(AnalysisType type, ScanReason reason) {
+        if (universe.sealed() && !type.isInstantiated()) {
             throw AnalysisError.shouldNotReachHere("Universe is sealed. New type reachable: " + type.toJavaName());
         }
         universe.getBigbang().registerTypeAsInHeap(type, reason);
@@ -254,7 +261,7 @@ public abstract class ImageHeapScanner {
             newImageHeapConstant = createImageHeapInstance(constant, type, reason);
             AnalysisType typeFromClassConstant = (AnalysisType) constantReflection.asJavaType(constant);
             if (typeFromClassConstant != null) {
-                typeFromClassConstant.registerAsReachable(reason);
+                markTypeReachable(typeFromClassConstant, reason);
             }
         }
         return newImageHeapConstant;
@@ -277,7 +284,7 @@ public abstract class ImageHeapScanner {
 
     private ImageHeapInstance createImageHeapInstance(JavaConstant constant, AnalysisType type, ScanReason reason) {
         /* We are about to query the type's fields, the type must be marked as reachable. */
-        type.registerAsReachable(reason);
+        markTypeReachable(type, reason);
         ResolvedJavaField[] instanceFields = type.getInstanceFields(true);
         ImageHeapInstance instance = new ImageHeapInstance(type, constant, instanceFields.length);
         for (ResolvedJavaField javaField : instanceFields) {
