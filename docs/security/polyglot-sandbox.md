@@ -182,7 +182,7 @@ As an example, an antipattern would be to implement a third party interface and 
 
 The ISOLATED and UNTRUSTED sandbox policies require setting resource limits for a context.
 Different configurations can be provided for each context.
-If a limit is exceeded, evaluation of the code fails and the context is canceled with a [`PolyglotException`](https://www.graalvm.org/sdk/javadoc/org/graalvm/polyglot/PolyglotException.html) which returns `true` for `isResourceExhausted()`.
+If a limit is exceeded, evaluation of the code fails and the context is cancelled with a [`PolyglotException`](https://www.graalvm.org/sdk/javadoc/org/graalvm/polyglot/PolyglotException.html) which returns `true` for `isResourceExhausted()`.
 At this point, no more guest code can be executed in the context
 
 The `--sandbox.TraceLimits` option allows you to trace guest code and record the maximum resource utilization.
@@ -232,7 +232,7 @@ Certain limits can be [reset](#resetting-resource-limits) at any point of time d
 
 The `sandbox.MaxCPUTime` option allows you to specify the maximum CPU time spent running guest code.
 CPU time spent depends on the underlying hardware.
-The maximum [CPU time](https://docs.oracle.com/en/java/javase/17/docs/api/java.management/java/lang/management/ThreadMXBean.html#getThreadCpuTime\(long\)) specifies how long a context can be active until it is automatically cancelled and the context is closed.
+The maximum [CPU time](https://docs.oracle.com/en/java/javase/21/docs/api/java.management/java/lang/management/ThreadMXBean.html#getThreadCpuTime\(long\)) specifies how long a context can be active until it is automatically cancelled and the context is closed.
 By default the time limit is checked every 10 milliseconds.
 This can be customized using the `sandbox.MaxCPUTimeCheckInterval` option.
 
@@ -247,7 +247,7 @@ This can mean that if two threads execute the same context then the time limit w
 
 The time limit is enforced by a separate high-priority thread that will be woken regularly.
 There is no guarantee that the context will be cancelled within the accuracy specified.
-The accuracy may be significantly missed, e.g. if the host VM causes a full garbage collection.
+The accuracy may be significantly missed, for example, if the host VM causes a full garbage collection.
 If the time limit is never exceeded then the throughput of the guest context is not affected.
 If the time limit is exceeded for one context then it may slow down the throughput for other contexts with the same explicit engine temporarily.
 
@@ -347,8 +347,8 @@ The limit is checked by retained size computation triggered either based on [all
 The allocated bytes are checked by a separate high-priority thread that will be woken regularly.
 There is one such thread for each memory-limited context (one with `sandbox.MaxHeapMemory` set).
 The retained bytes computation is done by yet another high-priority thread that is started from the allocated bytes checking thread as needed.
-The retained bytes computation thread also cancels the context if the heap memory limit is exeeded.
-Additionaly, when the low memory trigger is invoked, all contexts on engines with at least one memory-limited context are paused together with their allocation checkers.
+The retained bytes computation thread also cancels the context if the heap memory limit is exceeded.
+Additionally, when the low memory trigger is invoked, all memory-limited contexts are paused together with their allocation checkers.
 All individual retained size computations are cancelled.
 Retained bytes in the heap for each memory-limited context are computed by a single high-priority thread.
 
@@ -376,8 +376,8 @@ This can be configured by the `sandbox.RetainedBytesCheckInterval` option. The i
 The allocated bytes checking for a context can be disabled by the `sandbox.AllocatedBytesCheckEnabled` option.
 By default it is enabled ("true"). If disabled ("false"), retained size checking for the context can be triggered only by the low memory trigger.
 
-When the total number of bytes allocated in the heap for the whole host VM exceeds a certain factor of the total heap memory of the VM, [low memory notification](https://docs.oracle.com/en/java/javase/17/docs/api/java.management/java/lang/management/MemoryMXBean.html) is invoked and initiates the following process.
-The execution for all engines with at least one execution context which has the `sandbox.MaxHeapMemory` option set is paused, retained bytes in the heap for each memory-limited context are computed, contexts exceeding their limits are cancelled, and then the execution is resumed.
+When the total number of bytes allocated in the heap for the whole host VM exceeds a certain factor of the total heap memory of the VM, [low memory notification](https://docs.oracle.com/en/java/javase/21/docs/api/java.management/java/lang/management/MemoryMXBean.html) is invoked and initiates the following process.
+The execution pauses for all execution contexts where the `sandbox.MaxHeapMemory` option is set. The execution is resumed only when retained bytes in the heap for each memory-limited context are computed and contexts exceeding their limits are cancelled.
 The default factor is 0.7. This can be configured by the `sandbox.RetainedBytesCheckFactor` option.
 The factor must be between 0.0 and 1.0. All contexts using the `sandbox.MaxHeapMemory` option must use the same value for `sandbox.RetainedBytesCheckFactor`.
 
