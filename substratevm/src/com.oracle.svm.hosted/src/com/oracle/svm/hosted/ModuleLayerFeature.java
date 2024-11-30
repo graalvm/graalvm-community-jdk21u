@@ -67,6 +67,7 @@ import com.oracle.svm.core.SubstrateUtil;
 import com.oracle.svm.core.feature.AutomaticallyRegisteredFeature;
 import com.oracle.svm.core.feature.InternalFeature;
 import com.oracle.svm.core.jdk.Resources;
+import com.oracle.svm.core.jdk.RuntimeClassLoaderValueSupport;
 import com.oracle.svm.core.jdk.RuntimeModuleSupport;
 import com.oracle.svm.core.util.VMError;
 import com.oracle.svm.util.LogUtils;
@@ -75,6 +76,7 @@ import com.oracle.svm.util.ReflectionUtil;
 
 import jdk.internal.module.DefaultRoots;
 import jdk.internal.module.ModuleBootstrap;
+import jdk.internal.module.ServicesCatalog;
 import jdk.internal.module.SystemModuleFinders;
 
 /**
@@ -225,6 +227,7 @@ public final class ModuleLayerFeature implements InternalFeature {
         List<ModuleLayer> runtimeModuleLayers = synthesizeRuntimeModuleLayers(accessImpl, reachableModuleLayers, runtimeImageNamedModules, analysisReachableSyntheticModules, rootModules);
         ModuleLayer runtimeBootLayer = runtimeModuleLayers.get(0);
         RuntimeModuleSupport.instance().setBootLayer(runtimeBootLayer);
+        RuntimeClassLoaderValueSupport.instance().update(accessImpl.imageClassLoader.getClassLoader(), runtimeModuleLayers);
 
         /*
          * Ensure that runtime modules have the same relations (i.e., reads, opens and exports) as
@@ -426,11 +429,20 @@ public final class ModuleLayerFeature implements InternalFeature {
                 nameToModule.putIfAbsent(runtimeSyntheticModule.getName(), runtimeSyntheticModule);
                 moduleLayerFeatureUtils.patchModuleLayerField(runtimeSyntheticModule, runtimeModuleLayer);
             }
-            patchRuntimeModuleLayer(runtimeModuleLayer, nameToModule, parentLayers);
+            ServicesCatalog servicesCatalog = synthesizeRuntimeModuleLayerServicesCatalog(nameToModule);
+            patchRuntimeModuleLayer(accessImpl, runtimeModuleLayer, nameToModule, parentLayers, servicesCatalog);
             return runtimeModuleLayer;
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException ex) {
             throw VMError.shouldNotReachHere("Failed to synthesize the runtime module layer: " + runtimeModuleLayer, ex);
         }
+    }
+
+    private static ServicesCatalog synthesizeRuntimeModuleLayerServicesCatalog(Map<String, Module> nameToModule) {
+        ServicesCatalog servicesCatalog = ServicesCatalog.create();
+        for (Module m : nameToModule.values()) {
+            servicesCatalog.register(m);
+        }
+        return servicesCatalog;
     }
 
     private void replicateVisibilityModifications(ModuleLayer runtimeBootLayer, ImageClassLoader cl, Set<Module> analysisReachableNamedModules,
@@ -565,10 +577,11 @@ public final class ModuleLayerFeature implements InternalFeature {
         }
     }
 
-    private void patchRuntimeModuleLayer(ModuleLayer runtimeModuleLayer, Map<String, Module> nameToModule, List<ModuleLayer> parents) {
+    private void patchRuntimeModuleLayer(ModuleLayer runtimeModuleLayer, Map<String, Module> nameToModule, List<ModuleLayer> parents, ServicesCatalog servicesCatalog) {
         try {
             moduleLayerFeatureUtils.patchModuleLayerNameToModuleField(runtimeModuleLayer, nameToModule);
             moduleLayerFeatureUtils.patchModuleLayerParentsField(runtimeModuleLayer, parents);
+            moduleLayerFeatureUtils.patchModuleLayerServicesCatalogField(runtimeModuleLayer, servicesCatalog);
         } catch (IllegalAccessException ex) {
             throw VMError.shouldNotReachHere("Failed to patch the runtime boot module layer.", ex);
         }
@@ -603,6 +616,7 @@ public final class ModuleLayerFeature implements InternalFeature {
         private final Constructor<ModuleLayer> moduleLayerConstructor;
         private final Field moduleLayerNameToModuleField;
         private final Field moduleLayerParentsField;
+        private final Field moduleLayerServicesCatalogField;
 
         ModuleLayerFeatureUtils(ImageClassLoader cl) {
             runtimeModules = new HashMap<>();
@@ -658,6 +672,7 @@ public final class ModuleLayerFeature implements InternalFeature {
                 moduleLayerConstructor = ReflectionUtil.lookupConstructor(ModuleLayer.class, Configuration.class, List.class, Function.class);
                 moduleLayerNameToModuleField = ReflectionUtil.lookupField(ModuleLayer.class, "nameToModule");
                 moduleLayerParentsField = ReflectionUtil.lookupField(ModuleLayer.class, "parents");
+                moduleLayerServicesCatalogField = ReflectionUtil.lookupField(ModuleLayer.class, "servicesCatalog");
             } catch (ReflectiveOperationException | NoSuchElementException ex) {
                 throw VMError.shouldNotReachHere("Failed to retrieve fields of the Module/ModuleLayer class.", ex);
             }
@@ -1007,6 +1022,11 @@ public final class ModuleLayerFeature implements InternalFeature {
 
         void patchModuleLayerParentsField(ModuleLayer moduleLayer, List<ModuleLayer> parents) throws IllegalAccessException {
             moduleLayerParentsField.set(moduleLayer, parents);
+        }
+
+        void patchModuleLayerServicesCatalogField(ModuleLayer moduleLayer, ServicesCatalog servicesCatalog) throws IllegalAccessException {
+            moduleLayerServicesCatalogField.set(moduleLayer, servicesCatalog);
+            accessImpl.rescanField(moduleLayer, moduleLayerServicesCatalogField);
         }
 
         ClassLoader getClassLoaderForBootLayerModule(String name) {
