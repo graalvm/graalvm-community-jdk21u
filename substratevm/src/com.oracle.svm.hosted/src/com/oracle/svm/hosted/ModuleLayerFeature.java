@@ -24,8 +24,6 @@
  */
 package com.oracle.svm.hosted;
 
-import static com.oracle.svm.core.util.VMError.shouldNotReachHereAtRuntime;
-
 import java.lang.module.Configuration;
 import java.lang.module.FindException;
 import java.lang.module.ModuleDescriptor;
@@ -56,7 +54,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import jdk.internal.loader.ClassLoaders;
 import org.graalvm.compiler.serviceprovider.JavaVersionUtil;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.Platform;
@@ -70,6 +67,7 @@ import com.oracle.svm.core.feature.InternalFeature;
 import com.oracle.svm.core.jdk.Resources;
 import com.oracle.svm.core.jdk.RuntimeClassLoaderValueSupport;
 import com.oracle.svm.core.jdk.RuntimeModuleSupport;
+import com.oracle.svm.core.util.HostedSubstrateUtil;
 import com.oracle.svm.core.util.VMError;
 import com.oracle.svm.util.LogUtils;
 import com.oracle.svm.util.ModuleSupport;
@@ -79,6 +77,8 @@ import jdk.internal.module.DefaultRoots;
 import jdk.internal.module.ModuleBootstrap;
 import jdk.internal.module.ServicesCatalog;
 import jdk.internal.module.SystemModuleFinders;
+
+import static com.oracle.svm.core.util.VMError.shouldNotReachHereAtRuntime;
 
 /**
  * This feature:
@@ -762,18 +762,6 @@ public final class ModuleLayerFeature implements InternalFeature {
             }
         }
 
-        private ClassLoader getRuntimeLoaderFor(ClassLoader hostedLoader) {
-            /*
-             * Make sure to replace builder class loader with the application class loader. This is
-             * the case, for example, for library support modules.
-             */
-            if (hostedLoader == imageClassLoader.getClassLoader()) {
-                return ClassLoaders.appClassLoader();
-            } else {
-                return hostedLoader;
-            }
-        }
-
         public Module getRuntimeModuleForHostedModule(Module hostedModule, boolean optional) {
             if (hostedModule.isNamed()) {
                 return getRuntimeModuleForHostedModule(hostedModule.getClassLoader(), hostedModule.getName(), optional);
@@ -783,7 +771,7 @@ public final class ModuleLayerFeature implements InternalFeature {
         }
 
         public Module getRuntimeModuleForHostedModule(ClassLoader hostedLoader, String hostedModuleName, boolean optional) {
-            ClassLoader loader = getRuntimeLoaderFor(hostedLoader);
+            ClassLoader loader = HostedSubstrateUtil.getRuntimeClassLoader(hostedLoader);
             Map<String, Module> loaderRuntimeModules = runtimeModules.get(loader);
             if (loaderRuntimeModules == null) {
                 if (optional) {
@@ -814,7 +802,7 @@ public final class ModuleLayerFeature implements InternalFeature {
         }
 
         public Module getOrCreateRuntimeModuleForHostedModule(ClassLoader hostedLoader, String hostedModuleName, ModuleDescriptor runtimeModuleDescriptor) {
-            ClassLoader loader = getRuntimeLoaderFor(hostedLoader);
+            ClassLoader loader = HostedSubstrateUtil.getRuntimeClassLoader(hostedLoader);
             synchronized (runtimeModules) {
                 Module runtimeModule = getRuntimeModuleForHostedModule(loader, hostedModuleName, true);
                 if (runtimeModule != null) {
