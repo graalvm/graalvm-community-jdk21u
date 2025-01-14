@@ -52,7 +52,7 @@ import com.oracle.svm.core.util.json.JsonWriter;
  */
 public class ConfigurationType implements JsonPrintable {
     static ConfigurationType copyAndSubtract(ConfigurationType type, ConfigurationType subtractType) {
-        if (type.equals(subtractType)) {
+        if (type == subtractType) {
             return null;
         }
         ConfigurationType copy = new ConfigurationType(type);
@@ -69,10 +69,6 @@ public class ConfigurationType implements JsonPrintable {
 
     static ConfigurationType copyAndIntersect(ConfigurationType type, ConfigurationType toIntersect) {
         ConfigurationType copy = new ConfigurationType(type);
-        if (copy.equals(toIntersect)) {
-            return copy;
-        }
-
         assert type.getCondition().equals(toIntersect.getCondition());
         assert type.getQualifiedJavaName().equals(toIntersect.getQualifiedJavaName());
         copy.intersectWith(toIntersect);
@@ -207,7 +203,7 @@ public class ConfigurationType implements JsonPrintable {
     }
 
     private void intersectFlags(ConfigurationType other) {
-        setFlagsFromOther(other, (our, their) -> our && their, ConfigurationMemberAccessibility::remove);
+        setFlagsFromOther(other, (our, their) -> our && their, ConfigurationMemberAccessibility::intersect);
     }
 
     private void intersectFields(ConfigurationType other) {
