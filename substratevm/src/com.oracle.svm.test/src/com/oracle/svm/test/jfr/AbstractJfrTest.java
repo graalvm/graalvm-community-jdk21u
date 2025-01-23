@@ -200,14 +200,8 @@ class JfrTestFeature implements Feature {
     }
 
     @Override
-    public void beforeAnalysis(BeforeAnalysisAccess access) {
-        /*
-         * Register proxies for event data assertion
-         *
-         * Unsigned added to be able to query RecordedObject.getLong() method, and this method
-         * checks if the value returned has the jdk.jfr.Unsigned. The jfr layer in HotSpot creates a
-         * proxy to query this information.
-         */
+    public void beforeAnalysis(Feature.BeforeAnalysisAccess access) {
+        /* Needed so that the tests can call RecordedObject.getLong(). */
         RuntimeProxyCreation.register(Unsigned.class);
     }
 }
