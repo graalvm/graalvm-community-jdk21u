@@ -72,6 +72,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -139,6 +140,7 @@ final class PolyglotEngineImpl implements com.oracle.truffle.polyglot.PolyglotIm
     static final int HOST_LANGUAGE_INDEX = 0;
     static final String HOST_LANGUAGE_ID = "host";
 
+    private static final AtomicLong ENGINE_COUNTER = new AtomicLong();
     static final String ENGINE_ID = "engine";
     static final String OPTION_GROUP_ENGINE = ENGINE_ID;
     static final String OPTION_GROUP_COMPILER = "compiler";
@@ -239,6 +241,10 @@ final class PolyglotEngineImpl implements com.oracle.truffle.polyglot.PolyglotIm
 
     final APIAccess apiAccess;
 
+    final InternalResourceRoots internalResourceRoots;
+
+    final long engineId;
+
     @SuppressWarnings("unchecked")
     PolyglotEngineImpl(PolyglotImpl impl, SandboxPolicy sandboxPolicy, String[] permittedLanguages,
                     DispatchOutputStream out, DispatchOutputStream err, InputStream in, OptionValuesImpl engineOptions,
@@ -247,6 +253,7 @@ final class PolyglotEngineImpl implements com.oracle.truffle.polyglot.PolyglotIm
                     boolean allowExperimentalOptions, boolean boundEngine, boolean preInitialization,
                     MessageTransport messageInterceptor, LogHandler logHandler,
                     TruffleLanguage<Object> hostImpl, boolean hostLanguageOnly, AbstractPolyglotHostService polyglotHostService) {
+        this.engineId = ENGINE_COUNTER.incrementAndGet();
         this.apiAccess = impl.getAPIAccess();
         this.sandboxPolicy = sandboxPolicy;
         this.messageInterceptor = messageInterceptor;
@@ -298,6 +305,7 @@ final class PolyglotEngineImpl implements com.oracle.truffle.polyglot.PolyglotIm
             }
         }
         this.idToPublicLanguage = Collections.unmodifiableMap(publicLanguages);
+        this.internalResourceRoots = InternalResourceRoots.getInstance();
 
         Map<String, Object> publicInstruments = new LinkedHashMap<>();
         for (String key : this.idToInstrument.keySet()) {
@@ -472,6 +480,7 @@ final class PolyglotEngineImpl implements com.oracle.truffle.polyglot.PolyglotIm
 
     @SuppressWarnings("unchecked")
     PolyglotEngineImpl(PolyglotEngineImpl prototype) {
+        this.engineId = ENGINE_COUNTER.incrementAndGet();
         this.apiAccess = prototype.apiAccess;
         this.sandboxPolicy = prototype.sandboxPolicy;
         this.messageInterceptor = prototype.messageInterceptor;
@@ -493,6 +502,7 @@ final class PolyglotEngineImpl implements com.oracle.truffle.polyglot.PolyglotIm
         this.engineLoggerSupplier = prototype.engineLoggerSupplier;
 
         this.polyglotHostService = prototype.polyglotHostService;
+        this.internalResourceRoots = prototype.internalResourceRoots;
 
         Map<String, LanguageInfo> languageInfos = new LinkedHashMap<>();
         this.hostLanguageOnly = prototype.hostLanguageOnly;
@@ -659,6 +669,7 @@ final class PolyglotEngineImpl implements com.oracle.truffle.polyglot.PolyglotIm
         this.logHandler = newLogHandler;
         this.engineOptionValues = engineOptions;
         this.logLevels = newLogConfig.logLevels;
+        this.internalResourceRoots.patch();
 
         if (PreInitContextHostLanguage.isInstance(hostLanguage)) {
             this.hostLanguage = createLanguage(LanguageCache.createHostLanguageCache(newHostLanguage), HOST_LANGUAGE_INDEX, null);
@@ -1486,6 +1497,7 @@ final class PolyglotEngineImpl implements com.oracle.truffle.polyglot.PolyglotIm
                 return waitForThreads(context, startMillis, timeout);
             }
         } finally {
+            boolean interrupted = false;
             for (Future<Void> future : futures) {
                 boolean timedOut = false;
                 try {
@@ -1504,8 +1516,13 @@ final class PolyglotEngineImpl implements com.oracle.truffle.polyglot.PolyglotIm
                     } else {
                         future.get();
                     }
-                } catch (ExecutionException | InterruptedException e) {
+                } catch (ExecutionException e) {
                     throw CompilerDirectives.shouldNotReachHere(e);
+                } catch (InterruptedException e) {
+                    interrupted = true;
+                }
+                if (interrupted) {
+                    Thread.currentThread().interrupt();
                 }
                 if (timedOut) {
                     return false;
@@ -1736,7 +1753,7 @@ final class PolyglotEngineImpl implements com.oracle.truffle.polyglot.PolyglotIm
             } else if (customFileSystem != null) {
                 fileSystemConfig = new FileSystemConfig(ioAccess, customFileSystem, customFileSystem);
             } else {
-                fileSystemConfig = new FileSystemConfig(ioAccess, FileSystems.newNoIOFileSystem(), FileSystems.newResourcesFileSystem());
+                fileSystemConfig = new FileSystemConfig(ioAccess, FileSystems.newNoIOFileSystem(), FileSystems.newResourcesFileSystem(this));
             }
             if (currentWorkingDirectory != null) {
                 Path publicFsCwd;
@@ -2306,6 +2323,20 @@ final class PolyglotEngineImpl implements com.oracle.truffle.polyglot.PolyglotIm
         } else {
             return version;
         }
+    }
+
+    Map<String, Path> languageHomes() {
+        Map<String, Path> languageHomes = new HashMap<>();
+        for (PolyglotLanguage language : languages) {
+            if (language != null) {
+                LanguageCache cache = language.cache;
+                String languageHome = cache.getLanguageHome();
+                if (languageHome != null) {
+                    languageHomes.put(cache.getId(), Path.of(languageHome));
+                }
+            }
+        }
+        return languageHomes;
     }
 
 }

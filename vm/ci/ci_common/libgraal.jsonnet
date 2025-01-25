@@ -45,7 +45,7 @@ local utils = import '../../../ci/ci_common/common-utils.libsonnet';
   libgraal_truffle_base(quickbuild_args=[], extra_vm_args=[], coverage=false): self.libgraal_build(['-J-esa', '-J-ea', '-esa', '-ea'] + quickbuild_args) + {
     environment+: {
       # The Truffle TCK tests run as a part of Truffle TCK gate, tools tests run as a part of tools gate
-      TEST_LIBGRAAL_EXCLUDE: 'com.oracle.truffle.tck.tests.* com.oracle.truffle.tools.*'
+      TEST_LIBGRAAL_EXCLUDE: 'com.oracle.truffle.tck.tests.* com.oracle.truffle.tools.* com.oracle.truffle.regex.*'
     },
     run+: [
       ['mx', '--env', vm.libgraal_env, 'gate', '--task', 'LibGraal Truffle'] + if coverage then g.jacoco_gate_args else [] +
@@ -77,7 +77,6 @@ local utils = import '../../../ci/ci_common/common-utils.libsonnet';
     "gate-vm-libgraal_compiler_zgc-labsjdk-21-linux-amd64": {},
     "gate-vm-libgraal_compiler_quickbuild-labsjdk-21-linux-amd64": {},
     "gate-vm-libgraal_truffle_quickbuild-labsjdk-21-linux-amd64": t("1:10:00"),
-    "gate-vm-libgraal_compiler-oraclejdk-22-linux-amd64": {},
   },
 
   # See definition of `dailies` local variable in ../../compiler/ci_common/gate.jsonnet
@@ -148,7 +147,7 @@ local utils = import '../../../ci/ci_common/common-utils.libsonnet';
     ]
     for os_arch in all_os_arches
     for task in [
-      "libgraal_compiler",
+
     ]
   ],
 

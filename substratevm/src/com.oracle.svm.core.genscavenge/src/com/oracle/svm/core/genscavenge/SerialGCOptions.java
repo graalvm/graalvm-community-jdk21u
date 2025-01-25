@@ -89,6 +89,9 @@ public final class SerialGCOptions {
     @Option(help = "Verify the heap before doing a garbage collection if VerifyHeap is enabled. Serial GC only.", type = OptionType.Debug)//
     public static final HostedOptionKey<Boolean> VerifyBeforeGC = new HostedOptionKey<>(true, SerialGCOptions::serialGCOnly);
 
+    @Option(help = "Verify the heap during a garbage collection if VerifyHeap is enabled. Serial GC only.", type = OptionType.Debug)//
+    public static final HostedOptionKey<Boolean> VerifyDuringGC = new HostedOptionKey<>(true, SerialGCOptions::serialGCOnly);
+
     @Option(help = "Verify the heap after doing a garbage collection if VerifyHeap is enabled. Serial GC only.", type = OptionType.Debug)//
     public static final HostedOptionKey<Boolean> VerifyAfterGC = new HostedOptionKey<>(true, SerialGCOptions::serialGCOnly);
 
@@ -110,7 +113,8 @@ public final class SerialGCOptions {
     @Option(help = "Develop demographics of the object references visited. Serial GC only.", type = OptionType.Debug)//
     public static final HostedOptionKey<Boolean> GreyToBlackObjRefDemographics = new HostedOptionKey<>(false, SerialGCOptions::serialGCOnly);
 
-    @Option(help = "Ignore the maximum heap size while a VM operation is executed.", type = OptionType.Expert)//
+    /* Option should be renamed, see GR-53798. */
+    @Option(help = "Ignore the maximum heap size while in VM-internal code.", type = OptionType.Expert)//
     public static final HostedOptionKey<Boolean> IgnoreMaxHeapSizeWhileInVMOperation = new HostedOptionKey<>(false, SerialGCOptions::serialGCOnly);
 
     private SerialGCOptions() {

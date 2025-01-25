@@ -51,6 +51,7 @@ import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -847,7 +848,10 @@ final class PolyglotContextImpl implements com.oracle.truffle.polyglot.PolyglotI
                             notifyThreadClosed(threadInfo);
                         }
                         if ((state.isInterrupting() || state == State.CLOSED_INTERRUPTED) && !threadInfo.isActive()) {
-                            Thread.interrupted();
+                            if (threadInfo.interruptSent) {
+                                Thread.interrupted();
+                                threadInfo.interruptSent = false;
+                            }
                             notifyAll();
                         }
                     }
@@ -1078,9 +1082,11 @@ final class PolyglotContextImpl implements com.oracle.truffle.polyglot.PolyglotI
             currentThreadInfo.setLeaveAndEnterInterrupter(interrupter);
             setCachedThreadInfo(PolyglotThreadInfo.NULL);
         }
+        boolean interrupted = false;
         try {
             return interruptible.apply(object);
         } catch (InterruptedException e) {
+            interrupted = true;
         } finally {
             if (currentThreadInfo.leaveAndEnterInterrupted) {
                 interrupter.resetInterrupted();
@@ -1104,6 +1110,9 @@ final class PolyglotContextImpl implements com.oracle.truffle.polyglot.PolyglotI
             if (!mustSucceed) {
                 TruffleSafepoint.pollHere(uncachedLocation);
             }
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
         }
         return null;
     }
@@ -1180,7 +1189,10 @@ final class PolyglotContextImpl implements com.oracle.truffle.polyglot.PolyglotI
             }
 
             if ((state.isInterrupting() || state == State.CLOSED_INTERRUPTED) && !threadInfo.isActive()) {
-                Thread.interrupted();
+                if (threadInfo.interruptSent) {
+                    Thread.interrupted();
+                    threadInfo.interruptSent = false;
+                }
                 notifyAll();
             }
 
@@ -2050,14 +2062,18 @@ final class PolyglotContextImpl implements com.oracle.truffle.polyglot.PolyglotI
     /**
      * Wait until the condition is false.
      */
-    @SuppressWarnings("CatchMayIgnoreException")
     void waitUntilFalse(Supplier<Boolean> condition) {
         assert Thread.holdsLock(this);
+        boolean interrupted = false;
         while (condition.get()) {
             try {
                 wait();
             } catch (InterruptedException e) {
+                interrupted = true;
             }
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -2065,17 +2081,21 @@ final class PolyglotContextImpl implements com.oracle.truffle.polyglot.PolyglotI
      * Wait until the condition is false and return true, or wait until timeout while the condition
      * is true and return false.
      */
-    @SuppressWarnings("CatchMayIgnoreException")
     boolean waitUntilFalseWithTimeout(Supplier<Boolean> condition, long startMillis, long timeoutMillis) {
         assert Thread.holdsLock(this);
         long timeElapsed = System.currentTimeMillis() - startMillis;
         boolean value;
+        boolean interrupted = false;
         while ((value = condition.get()) && timeElapsed < timeoutMillis) {
             try {
                 wait(timeoutMillis - timeElapsed);
             } catch (InterruptedException e) {
+                interrupted = true;
             }
             timeElapsed = System.currentTimeMillis() - startMillis;
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
         }
         /*
          * The condition supplier might be racy. E.g., for hasActiveOtherThread, one of the threads
@@ -2238,7 +2258,9 @@ final class PolyglotContextImpl implements com.oracle.truffle.polyglot.PolyglotI
             // clear interrupted status after closingThread
             // needed because we interrupt when closingThread from another thread.
             info.cancelled = true;
-            Thread.interrupted();
+            if (info.interruptSent) {
+                Thread.interrupted();
+            }
         }
         notifyAll();
     }
@@ -2334,7 +2356,6 @@ final class PolyglotContextImpl implements com.oracle.truffle.polyglot.PolyglotI
         futures.add(threadLocalActions.submit(null, PolyglotEngineImpl.ENGINE_ID, new CancellationThreadLocalAction(), true));
         if (info != PolyglotThreadInfo.NULL) {
             info.cancelled = true;
-            Thread.interrupted();
         }
         setCachedThreadInfo(PolyglotThreadInfo.NULL);
     }
@@ -2645,11 +2666,16 @@ final class PolyglotContextImpl implements com.oracle.truffle.polyglot.PolyglotI
     }
 
     private void waitUntilInvalid() {
+        boolean interrupted = false;
         while (!state.isInvalidOrClosed()) {
             try {
                 wait();
             } catch (InterruptedException ie) {
+                interrupted = true;
             }
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -3072,10 +3098,12 @@ final class PolyglotContextImpl implements com.oracle.truffle.polyglot.PolyglotI
             localCleanupService = cleanupExecutorService;
         }
         if (localCleanupService != null) {
+            boolean interrupted = false;
             try {
                 try {
                     cleanupFuture.get();
                 } catch (InterruptedException ie) {
+                    interrupted = true;
                     engine.getEngineLogger().log(Level.INFO, "Waiting for polyglot context cleanup was interrupted!", ie);
                 } catch (ExecutionException ee) {
                     assert !(ee.getCause() instanceof AbstractTruffleException);
@@ -3089,9 +3117,13 @@ final class PolyglotContextImpl implements com.oracle.truffle.polyglot.PolyglotI
                             throw new IllegalStateException("Context cleanup service timeout!");
                         }
                     } catch (InterruptedException ie) {
+                        interrupted = true;
                         engine.getEngineLogger().log(Level.INFO, "Waiting for polyglot context cleanup was interrupted!", ie);
                     }
                 }
+            }
+            if (interrupted) {
+                Thread.currentThread().interrupt();
             }
         }
     }
@@ -3239,6 +3271,7 @@ final class PolyglotContextImpl implements com.oracle.truffle.polyglot.PolyglotI
                  * when the closed is performed.
                  */
                 threadInfo.getThread().interrupt();
+                threadInfo.interruptSent = true;
             }
         }
     }
@@ -3482,6 +3515,10 @@ final class PolyglotContextImpl implements com.oracle.truffle.polyglot.PolyglotI
         } finally {
             engine.leave(prev, this);
         }
+        PolyglotSharingLayer.Shared s = layer.shared;
+        if (s != null) {
+            s.sourceCache.patch(TracingSourceCacheListener.createOrNull(engine));
+        }
         return true;
     }
 
@@ -3605,8 +3642,9 @@ final class PolyglotContextImpl implements com.oracle.truffle.polyglot.PolyglotI
             context.singleThreadValue.reset();
             context.sourcesToInvalidate = null;
             context.threadLocalActions.prepareContextStore();
-            ((PreInitializeContextFileSystem) fileSystemConfig.fileSystem).onPreInitializeContextEnd();
-            ((PreInitializeContextFileSystem) fileSystemConfig.internalFileSystem).onPreInitializeContextEnd();
+            Map<String, Path> languageHomes = engine.languageHomes();
+            ((PreInitializeContextFileSystem) fileSystemConfig.fileSystem).onPreInitializeContextEnd(engine.internalResourceRoots, languageHomes);
+            ((PreInitializeContextFileSystem) fileSystemConfig.internalFileSystem).onPreInitializeContextEnd(engine.internalResourceRoots, languageHomes);
             if (!config.logLevels.isEmpty()) {
                 EngineAccessor.LANGUAGE.configureLoggers(context, null, context.getAllLoggers());
             }
