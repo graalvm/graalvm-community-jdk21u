@@ -67,7 +67,7 @@ Component(s) | License
 
 [badge-dl]: https://img.shields.io/badge/download-latest-blue
 [badge-docs]: https://img.shields.io/badge/docs-read-green
-[badge-gate]: https://github.com/oracle/graal/actions/workflows/main.yml/badge.svg
+[badge-gate]: https://github.com/graalvm/graalvm-community-jdk21u/actions/workflows/main.yml/badge.svg
 [badge-license]: https://img.shields.io/badge/license-GPLv2+CE-green
 [badge-slack]: https://img.shields.io/badge/Slack-join-active?logo=slack
 [badge-twitter]: https://img.shields.io/badge/Twitter-@graalvm-active?logo=twitter
@@ -77,8 +77,8 @@ Component(s) | License
 [docs]: https://www.graalvm.org/latest/docs/
 [downloads]: https://www.graalvm.org/downloads/
 [fastr]: https://github.com/oracle/fastr
-[gate]: https://github.com/oracle/graal/actions/workflows/main.yml
 [getting-started]: https://www.graalvm.org/latest/docs/getting-started/
+[gate]: https://github.com/graalvm/graalvm-community-jdk21u/actions/workflows/main.yml
 [graaljs]: https://github.com/oracle/graaljs
 [graalpy]: https://github.com/oracle/graalpython
 [graalvm-demos]: https://github.com/graalvm/graalvm-demos
