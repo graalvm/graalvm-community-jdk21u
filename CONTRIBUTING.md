@@ -20,6 +20,29 @@ Open a [GitHub issue](https://github.com/graalvm/graalvm-community-jdk21u/issues
 2. Make sure you have signed the [Oracle Contributor Agreement](https://oca.opensource.oracle.com/).
 3. Create a pull request with the fix and reference the issue or backport request in the description.
 
+#### Building GraalVM Community Edition for JDK 21
+
+Please refer to the [BUILDING.md](BUILDING.md) file for instructions on how to build GraalVM Community Edition for JDK 21.
+
+#### Running Style Checks
+
+Before submitting a pull request, please run the following command to ensure that your changes comply with the GraalVM Community Edition code style:
+
+```bash
+../mx/mx --primary-suite vm --env ce checkstyle
+
+ECLIPSE_TAR=eclipse.tar.gz
+ECLIPSE_ORG_VERSION=$(jq -r '.eclipse.short_version' common.json)
+ECLIPSE_ORG_TIMESTAMP=$(jq -r '.eclipse.timestamp' common.json)
+wget --no-verbose https://archive.eclipse.org/eclipse/downloads/drops4/R-${ECLIPSE_ORG_VERSION}-${ECLIPSE_ORG_TIMESTAMP}/eclipse-SDK-${ECLIPSE_ORG_VERSION}-linux-gtk-x86_64.tar.gz -O $ECLIPSE_TAR
+tar -xzf ${ECLIPSE_TAR}
+ECLIPSE_EXE=${PWD}/eclipse/eclipse
+../mx/mx --primary-suite vm --env ce eclipseformat --eclipse-exe $ECLIPSE_EXE
+```
+
+> [!NOTE]
+> The link used in the `wget` command above is only valid for linux x86_64. If you are using a different platform, please adjust the link accordingly.
+
 #### Backporting Fixes
 
 When backporting bug fixes use `git cherry-pick -x` to reference the original commit in the commit message. Additionally, please reference the upstream pull request that your changes are backporting. If the backport is partial explain which parts are being backported and why. Similarly in case of conflicts explain why they are happening and how they are resolved.
