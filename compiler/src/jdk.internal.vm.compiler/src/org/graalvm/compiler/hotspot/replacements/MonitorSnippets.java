@@ -891,7 +891,6 @@ public class MonitorSnippets implements Snippets {
                 args.add("object", monitorenterNode.object());
                 args.addConst("lockDepth", monitorenterNode.getMonitorId().getLockDepth());
                 args.addConst("trace", isTracingEnabledForType(monitorenterNode.object()) || isTracingEnabledForMethod(graph));
-                args.addConst("counters", counters);
             }
 
             template(tool, monitorenterNode, args).instantiate(tool.getMetaAccess(), monitorenterNode, DEFAULT_REPLACER, args);
@@ -903,14 +902,17 @@ public class MonitorSnippets implements Snippets {
             Arguments args;
             if (useFastLocking) {
                 args = new Arguments(monitorexit, graph.getGuardsStage(), tool.getLoweringStage());
+                args.add("object", monitorexitNode.object());
+                args.addConst("lockDepth", monitorexitNode.getMonitorId().getLockDepth());
+                args.addConst("threadRegister", registers.getThreadRegister());
+                args.addConst("trace", isTracingEnabledForType(monitorexitNode.object()) || isTracingEnabledForMethod(graph));
+                args.addConst("counters", counters);
             } else {
                 args = new Arguments(monitorexitStub, graph.getGuardsStage(), tool.getLoweringStage());
+                args.add("object", monitorexitNode.object());
+                args.addConst("lockDepth", monitorexitNode.getMonitorId().getLockDepth());
+                args.addConst("trace", isTracingEnabledForType(monitorexitNode.object()) || isTracingEnabledForMethod(graph));
             }
-            args.add("object", monitorexitNode.object());
-            args.addConst("lockDepth", monitorexitNode.getMonitorId().getLockDepth());
-            args.addConst("threadRegister", registers.getThreadRegister());
-            args.addConst("trace", isTracingEnabledForType(monitorexitNode.object()) || isTracingEnabledForMethod(graph));
-            args.addConst("counters", counters);
 
             template(tool, monitorexitNode, args).instantiate(tool.getMetaAccess(), monitorexitNode, DEFAULT_REPLACER, args);
         }
