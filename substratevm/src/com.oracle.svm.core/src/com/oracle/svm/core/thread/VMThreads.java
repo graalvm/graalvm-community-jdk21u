@@ -599,7 +599,7 @@ public abstract class VMThreads {
         return OSThreadIdTL.get(thread).equal(osThreadId);
     }
 
-    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
+    @Uninterruptible(reason = "Locking without transition requires that the whole critical section is uninterruptible.")
     public IsolateThread findIsolateThreadForCurrentOSThread(boolean inCrashHandler) {
         ThreadLookup threadLookup = ImageSingletons.lookup(ThreadLookup.class);
         ComparableWord identifier = threadLookup.getThreadIdentifier();
