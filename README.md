@@ -1,19 +1,27 @@
 [![GraalVM](.github/assets/logo_320x64.svg)][website]
 
-[![GraalVM downloads][badge-dl]][downloads] [![GraalVM docs][badge-docs]][docs] [![GraalVM on Slack][badge-slack]][slack] [![GraalVM on Twitter][badge-twitter]][twitter] [![GraalVM on YouTube][badge-yt]][youtube]  [![GraalVM Gate][badge-gate]][gate] [![License][badge-license]](#license)
+[![GraalVM Gate][badge-gate]][gate] [![GraalVM docs][badge-docs]][docs] [![GraalVM on Slack][badge-slack]][slack] [![GraalVM on Twitter][badge-twitter]][twitter] [![GraalVM on YouTube][badge-yt]][youtube]  [![License][badge-license]](#license)
 
-GraalVM is a high-performance JDK distribution designed to accelerate the execution of applications written in Java and other JVM languages along with support for JavaScript, Ruby, Python, and a number of other popular languages.
+Welcome to the **maintenance repository** of GraalVM Community Edition for JDK 21. This is a **source-only** repository maintained by the GraalVM community.
+
+GraalVM is a high-performance JDK distribution designed to accelerate the execution of applications written in Java and other JVM languages along with support for JavaScript, Ruby, Python, and a number of other popular languages. To get the latest GraalVM version visit  the [GraalVM website][downloads].
+
+Please refer to:
+
+1. [BUILDING.md](BUILDING.md) for instructions on how to build GraalVM Community Edition for JDK 21.
+2. [CONTRIBUTING.md](CONTRIBUTING.md) for information on how to contribute to this repository.
+3. [MAINTAINING.md](MAINTAINING.md) for information on how to maintain this repository.
 
 The project website at [https://www.graalvm.org/][website] describes how to [get started][getting-started], how to [stay connected][community], and how to [contribute][contributors].
 
 ## Documentation
 
-Please refer to the [GraalVM website for documentation][docs]. You can find most of the documentation sources in the [_docs/_](docs/) directory in the same hierarchy as displayed on the website. Additional documentation including developer instructions for individual components can be found in corresponding _docs/_ sub-directories. The documentation for the Truffle framework, for example, is in [_truffle/docs/_](truffle/docs/). This also applies to languages, tools, and other components maintained in [related repositories](#related-repositories).
+Please refer to the [GraalVM website for documentation][docs]. You can find most of the documentation sources in the [_docs/_](docs/) directory in the same hierarchy as displayed on the website. Additional documentation including developer instructions for individual components can be found in corresponding _docs/_ sub-directories. The documentation for the Truffle framework, for example, is in [_truffle/docs/_](truffle/docs/).
 
 ## Get Support
 
-* Open a [GitHub issue][issues] for bug reports, questions, or requests for enhancements.
-* Join the [GraalVM Slack][slack] to connect with the community and the GraalVM team.
+* Open a [GitHub issue][issues] for backport requests or bug reports.
+* Join the `#community-lts` channel in the [GraalVM Slack workspace][slack] to connect with the community.
 * Report a security vulnerability according to the [Reporting Vulnerabilities guide][reporting-vulnerabilities].
 
 ## Repository Structure
@@ -37,22 +45,6 @@ Directory | Description
 [`vm/`](vm/) | Components for building GraalVM distributions.
 [`wasm/`](wasm/) | [GraalWasm][reference-graalwasm], an engine for running WebAssembly programs on GraalVM.
 
-## Related Repositories
-
-GraalVM provides additional languages, tools, and other components developed in related repositories. These are:
-
-Name         | Description
------------- | -------------
-[FastR] | Implementation of the R language.
-[GraalJS] | Implementation of JavaScript and Node.js.
-[GraalPy] | Implementation of the Python language.
-[GraalVM Demos][graalvm-demos] | Several example applications illustrating GraalVM capabilities.
-[Native Build Tools][native-build-tools] | Build tool plugins for GraalVM Native Image.
-[SimpleLanguage] | A simple example language built with the Truffle framework.
-[SimpleTool] | A simple example tool built with the Truffle framework. 
-[TruffleRuby] | Implementation of the Ruby language.
-[VS Code Extensions][vscode-extensions] | VS Code extensions for GraalVM.
-
 ## License
 
 GraalVM Community Edition is open source and distributed under [version 2 of the GNU General Public License with the “Classpath” Exception](LICENSE), which are the same terms as for Java. The licenses of the individual GraalVM components are generally derivative of the license of a particular language (see the table below).
@@ -65,39 +57,31 @@ Component(s) | License
 [Sulong](sulong/LICENSE) | 3-clause BSD
 
 
-[badge-dl]: https://img.shields.io/badge/download-latest-blue
 [badge-docs]: https://img.shields.io/badge/docs-read-green
-[badge-gate]: https://github.com/oracle/graal/actions/workflows/main.yml/badge.svg
+[badge-gate]: https://github.com/graalvm/graalvm-community-jdk21u/actions/workflows/main.yml/badge.svg
 [badge-license]: https://img.shields.io/badge/license-GPLv2+CE-green
 [badge-slack]: https://img.shields.io/badge/Slack-join-active?logo=slack
 [badge-twitter]: https://img.shields.io/badge/Twitter-@graalvm-active?logo=twitter
 [badge-yt]: https://img.shields.io/badge/YouTube-subscribe-active?logo=youtube
 [community]: https://www.graalvm.org/community/
 [contributors]: https://www.graalvm.org/community/contributors/
-[docs]: https://www.graalvm.org/latest/docs/
+[docs]: https://www.graalvm.org/jdk21/docs/
 [downloads]: https://www.graalvm.org/downloads/
-[fastr]: https://github.com/oracle/fastr
-[gate]: https://github.com/oracle/graal/actions/workflows/main.yml
-[getting-started]: https://www.graalvm.org/latest/docs/getting-started/
-[graaljs]: https://github.com/oracle/graaljs
-[graalpy]: https://github.com/oracle/graalpython
+[gate]: https://github.com/graalvm/graalvm-community-jdk21u/actions/workflows/main.yml
+[getting-started]: https://www.graalvm.org/jdk21/docs/getting-started/
 [graalvm-demos]: https://github.com/graalvm/graalvm-demos
 [graalvm-sdk]: https://www.graalvm.org/sdk/javadoc/
-[igv]: https://www.graalvm.org/latest/tools/igv/
-[issues]: https://github.com/oracle/graal/issues
-[java-on-truffle]: https://www.graalvm.org/latest/reference-manual/java-on-truffle/
+[igv]: https://www.graalvm.org/jdk21/tools/igv/
+[issues]: https://github.com/graalvm/graalvm-community-jdk21u/issues
+[java-on-truffle]: https://www.graalvm.org/jdk21/reference-manual/java-on-truffle/
 [native-build-tools]: https://github.com/graalvm/native-build-tools
 [native-image]: https://www.graalvm.org/native-image/
-[reference-compiler]: https://www.graalvm.org/latest/reference-manual/java/compiler/
-[reference-graalwasm]: https://www.graalvm.org/latest/reference-manual/wasm/
-[reference-sulong]: https://www.graalvm.org/latest/reference-manual/llvm/
+[reference-compiler]: https://www.graalvm.org/jdk21/reference-manual/java/compiler/
+[reference-graalwasm]: https://www.graalvm.org/jdk21/reference-manual/wasm/
+[reference-sulong]: https://www.graalvm.org/jdk21/reference-manual/llvm/
 [reporting-vulnerabilities]: https://www.oracle.com/corporate/security-practices/assurance/vulnerability/reporting.html
-[simplelanguage]: https://github.com/graalvm/simplelanguage
-[simpletool]: https://github.com/graalvm/simpletool
 [slack]: https://www.graalvm.org/slack-invitation/
 [truffle]: https://www.graalvm.org/graalvm-as-a-platform/language-implementation-framework/
-[truffleruby]: https://github.com/oracle/truffleruby
 [twitter]: https://twitter.com/graalvm
-[vscode-extensions]: https://github.com/graalvm/vscode-extensions
 [website]: https://www.graalvm.org/
 [youtube]: https://www.youtube.com/graalvm
