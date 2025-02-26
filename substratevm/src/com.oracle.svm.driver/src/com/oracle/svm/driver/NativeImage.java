@@ -1173,8 +1173,12 @@ public class NativeImage {
 
         mainClass = getHostedOptionFinalArgumentValue(imageBuilderArgs, oHClass);
         buildExecutable = imageBuilderArgs.stream().noneMatch(arg -> arg.startsWith(oHEnableSharedLibraryFlagPrefix));
-        staticExecutable = imageBuilderArgs.stream().anyMatch(arg -> arg.contains(oHEnableStaticExecutable));
         libC = getHostedOptionFinalArgumentValue(imageBuilderArgs, oHUseLibC);
+        boolean staticExecutable = imageBuilderArgs.stream().anyMatch(arg -> arg.contains(oHEnableStaticExecutable));
+        if (useBundle() && bundleSupport.useContainer && staticExecutable) {
+            showMessage(BundleSupport.BUNDLE_INFO_MESSAGE_PREFIX + "Skipping containerized build, not supported for --static.");
+            bundleSupport.useContainer = false;
+        }
         boolean listModules = imageBuilderArgs.stream().anyMatch(arg -> arg.contains(oH + "+" + "ListModules"));
         printFlags |= imageBuilderArgs.stream().anyMatch(arg -> arg.matches("-H:MicroArchitecture(@[^=]*)?=list"));
 
@@ -1498,7 +1502,6 @@ public class NativeImage {
     }
 
     boolean buildExecutable;
-    boolean staticExecutable;
     String libC;
     String mainClass;
     String mainClassModule;
