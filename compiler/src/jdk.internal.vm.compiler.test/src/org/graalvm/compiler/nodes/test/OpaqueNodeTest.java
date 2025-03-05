@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,40 +22,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.svm.core.posix.headers;
+package org.graalvm.compiler.nodes.test;
 
-import org.graalvm.nativeimage.c.CContext;
-import org.graalvm.nativeimage.c.function.CFunction;
-import org.graalvm.nativeimage.c.struct.CField;
-import org.graalvm.nativeimage.c.struct.CPointerTo;
-import org.graalvm.nativeimage.c.struct.CStruct;
-import org.graalvm.nativeimage.c.type.CCharPointer;
-import org.graalvm.word.Pointer;
-import org.graalvm.word.PointerBase;
-import org.graalvm.word.UnsignedWord;
+import org.junit.Test;
 
-// Checkstyle: stop
+import org.graalvm.compiler.api.directives.GraalDirectives;
+import org.graalvm.compiler.core.test.GraalCompilerTest;
 
-/**
- * Definitions manually translated from the C header file pwd.h.
- */
-@CContext(PosixDirectives.class)
-public class Pwd {
+public class OpaqueNodeTest extends GraalCompilerTest {
 
-    @CStruct(addStructKeyword = true)
-    public interface passwd extends PointerBase {
-        @CField
-        CCharPointer pw_name();
-
-        @CField
-        CCharPointer pw_dir();
+    public static void opaqueClassSnippet() {
+        /*
+         * GR-51558: This would cause an assertion failure in LIR constant load optimization if the
+         * opaque is not removed.
+         */
+        Class<?> c = GraalDirectives.opaque(Object.class);
+        if (c.getResource("resource.txt") == null) {
+            GraalDirectives.deoptimize();
+        }
     }
 
-    @CPointerTo(passwd.class)
-    public interface passwdPointer extends Pointer {
-        passwd read();
+    @Test
+    public void testOpaqueClass() {
+        test("opaqueClassSnippet");
     }
-
-    @CFunction
-    public static native int getpwuid_r(int __uid, passwd pwd, CCharPointer buf, UnsignedWord buflen, passwdPointer result);
 }

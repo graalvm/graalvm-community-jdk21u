@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,40 +22,33 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.svm.core.posix.headers;
+package org.graalvm.compiler.phases.common;
 
-import org.graalvm.nativeimage.c.CContext;
-import org.graalvm.nativeimage.c.function.CFunction;
-import org.graalvm.nativeimage.c.struct.CField;
-import org.graalvm.nativeimage.c.struct.CPointerTo;
-import org.graalvm.nativeimage.c.struct.CStruct;
-import org.graalvm.nativeimage.c.type.CCharPointer;
-import org.graalvm.word.Pointer;
-import org.graalvm.word.PointerBase;
-import org.graalvm.word.UnsignedWord;
+import java.util.Optional;
 
-// Checkstyle: stop
+import org.graalvm.compiler.nodes.GraphState;
+import org.graalvm.compiler.nodes.StructuredGraph;
+import org.graalvm.compiler.nodes.extended.OpaqueValueNode;
+import org.graalvm.compiler.nodes.spi.CoreProviders;
+import org.graalvm.compiler.phases.BasePhase;
 
 /**
- * Definitions manually translated from the C header file pwd.h.
+ * Removes all {@link org.graalvm.compiler.nodes.extended.OpaqueValueNode}s from the graph.
  */
-@CContext(PosixDirectives.class)
-public class Pwd {
-
-    @CStruct(addStructKeyword = true)
-    public interface passwd extends PointerBase {
-        @CField
-        CCharPointer pw_name();
-
-        @CField
-        CCharPointer pw_dir();
+public class RemoveOpaqueValuePhase extends BasePhase<CoreProviders> {
+    @Override
+    public Optional<NotApplicable> notApplicableTo(GraphState graphState) {
+        return ALWAYS_APPLICABLE;
     }
 
-    @CPointerTo(passwd.class)
-    public interface passwdPointer extends Pointer {
-        passwd read();
+    public boolean shouldApply(StructuredGraph graph) {
+        return graph.hasNode(OpaqueValueNode.TYPE);
     }
 
-    @CFunction
-    public static native int getpwuid_r(int __uid, passwd pwd, CCharPointer buf, UnsignedWord buflen, passwdPointer result);
+    @Override
+    protected void run(StructuredGraph graph, CoreProviders context) {
+        for (OpaqueValueNode opaque : graph.getNodes(OpaqueValueNode.TYPE)) {
+            opaque.replaceAtUsagesAndDelete(opaque.getValue());
+        }
+    }
 }
