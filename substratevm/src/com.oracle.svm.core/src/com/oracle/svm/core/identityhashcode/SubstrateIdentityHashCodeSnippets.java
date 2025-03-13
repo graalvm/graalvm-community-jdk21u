@@ -25,7 +25,6 @@
 package com.oracle.svm.core.identityhashcode;
 
 import static org.graalvm.compiler.nodes.extended.BranchProbabilityNode.LIKELY_PROBABILITY;
-import static org.graalvm.compiler.nodes.extended.BranchProbabilityNode.NOT_FREQUENT_PROBABILITY;
 import static org.graalvm.compiler.nodes.extended.BranchProbabilityNode.SLOW_PATH_PROBABILITY;
 import static org.graalvm.compiler.nodes.extended.BranchProbabilityNode.probability;
 
@@ -52,6 +51,9 @@ final class SubstrateIdentityHashCodeSnippets extends IdentityHashCodeSnippets {
     static final SubstrateForeignCallDescriptor GENERATE_IDENTITY_HASH_CODE = SnippetRuntime.findForeignCall(
                     IdentityHashCodeSupport.class, "generateIdentityHashCode", true, IdentityHashCodeSupport.IDENTITY_HASHCODE_LOCATION);
 
+    static final SubstrateForeignCallDescriptor COMPUTE_ABSENT_IDENTITY_HASH_CODE = SnippetRuntime.findForeignCall(
+                    IdentityHashCodeSupport.class, "computeAbsentIdentityHashCode", true);
+
     static Templates createTemplates(OptionValues options, Providers providers) {
         return new Templates(new SubstrateIdentityHashCodeSnippets(), options, providers, IdentityHashCodeSupport.IDENTITY_HASHCODE_LOCATION);
     }
@@ -64,26 +66,21 @@ final class SubstrateIdentityHashCodeSnippets extends IdentityHashCodeSnippets {
             int offset = ol.getFixedIdentityHashOffset();
             identityHashCode = ObjectAccess.readInt(obj, offset, IdentityHashCodeSupport.IDENTITY_HASHCODE_LOCATION);
             if (probability(SLOW_PATH_PROBABILITY, identityHashCode == 0)) {
-                identityHashCode = generateIdentityHashCode(GENERATE_IDENTITY_HASH_CODE, obj);
+                identityHashCode = foreignCall(GENERATE_IDENTITY_HASH_CODE, obj);
             }
             return identityHashCode;
         }
         ObjectHeader oh = Heap.getHeap().getObjectHeader();
-        Word objPtr = Word.objectToUntrackedPointer(obj);
-        Word header = ObjectHeader.readHeaderFromPointer(objPtr);
+        Word header = ObjectHeader.readHeaderFromObject(obj);
         if (probability(LIKELY_PROBABILITY, oh.hasOptionalIdentityHashField(header))) {
             int offset = LayoutEncoding.getOptionalIdentityHashOffset(obj);
             identityHashCode = ObjectAccess.readInt(obj, offset, IdentityHashCodeSupport.IDENTITY_HASHCODE_LOCATION);
         } else {
-            identityHashCode = IdentityHashCodeSupport.computeHashCodeFromAddress(obj);
-            if (probability(NOT_FREQUENT_PROBABILITY, !oh.hasIdentityHashFromAddress(header))) {
-                // Note this write leads to frame state issues that break scheduling if done earlier
-                oh.setIdentityHashFromAddress(objPtr, header);
-            }
+            identityHashCode = foreignCall(COMPUTE_ABSENT_IDENTITY_HASH_CODE, obj);
         }
         return identityHashCode;
     }
 
     @NodeIntrinsic(ForeignCallNode.class)
-    private static native int generateIdentityHashCode(@ConstantNodeParameter ForeignCallDescriptor descriptor, Object obj);
+    private static native int foreignCall(@ConstantNodeParameter ForeignCallDescriptor descriptor, Object obj);
 }
