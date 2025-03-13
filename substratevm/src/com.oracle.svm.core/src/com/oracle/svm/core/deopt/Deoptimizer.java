@@ -258,6 +258,7 @@ public final class Deoptimizer {
         throw VMError.shouldNotReachHere("Unable to retrieve Deoptimized frame");
     }
 
+    @Uninterruptible(reason = "Prevent stack walks from seeing an inconsistent stack.")
     private static void installDeoptimizedFrame(Pointer sourceSp, DeoptimizedFrame deoptimizedFrame) {
         /*
          * Replace the return address to the deoptimized method with a pointer to the deoptStub.
@@ -690,7 +691,7 @@ public final class Deoptimizer {
             return existing;
         }
 
-        FrameInfoQueryResult frameInfo = sourceChunk.getFrameInfo();
+        final FrameInfoQueryResult frameInfo = sourceChunk.getFrameInfo();
         if (frameInfo == null) {
             if (ignoreNonDeoptimizable) {
                 return null;
@@ -752,8 +753,10 @@ public final class Deoptimizer {
         }
 
         RelockObjectData[] relockObjectData = relockedObjects == null ? null : relockedObjects.toArray(new RelockObjectData[relockedObjects.size()]);
+        boolean rethrowException = FrameInfoDecoder.decodeRethrowException(frameInfo.getEncodedBci());
         /* Allocate a buffer to hold the contents of the new target frame. */
-        DeoptimizedFrame deoptimizedFrame = DeoptimizedFrame.factory(targetContentSize, sourceChunk.getEncodedFrameSize(), CodeInfoTable.lookupInstalledCode(pc), topFrame, relockObjectData, pc);
+        DeoptimizedFrame deoptimizedFrame = DeoptimizedFrame.factory(targetContentSize, sourceChunk.getEncodedFrameSize(), CodeInfoTable.lookupInstalledCode(pc), topFrame, relockObjectData, pc,
+                        rethrowException);
 
         installDeoptimizedFrame(sourceSp, deoptimizedFrame);
 

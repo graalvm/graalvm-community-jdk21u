@@ -114,7 +114,12 @@ public class SubstrateOptions {
 
     @APIOption(name = "static")//
     @Option(help = "Build statically linked executable (requires static libc and zlib)")//
-    public static final HostedOptionKey<Boolean> StaticExecutable = new HostedOptionKey<>(false);
+    public static final HostedOptionKey<Boolean> StaticExecutable = new HostedOptionKey<>(false, key -> {
+        if (!LibCBase.targetLibCIs(MuslLibC.class)) {
+            throw UserError.abort(
+                            "Building static executable images is only supported with musl libc. Remove the '--static' option or add the '--libc=musl' option.");
+        }
+    });
 
     @APIOption(name = "libc")//
     @Option(help = "Selects the libc implementation to use. Available implementations: glibc, musl, bionic")//
@@ -964,9 +969,6 @@ public class SubstrateOptions {
 
     @Option(help = "Specifies the number of entries that diagnostic buffers have.", type = OptionType.Debug)//
     public static final HostedOptionKey<Integer> DiagnosticBufferSize = new HostedOptionKey<>(30);
-
-    @Option(help = "Determines if implicit exceptions are fatal if they don't have a stack trace.", type = OptionType.Debug)//
-    public static final RuntimeOptionKey<Boolean> ImplicitExceptionWithoutStacktraceIsFatal = new RuntimeOptionKey<>(false);
 
     @SuppressWarnings("unused")//
     @APIOption(name = "configure-reflection-metadata")//

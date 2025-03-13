@@ -37,6 +37,8 @@ public class EspressoThreadLocalState {
     private StaticObject currentPlatformThread;
     private StaticObject currentVirtualThread;
 
+    private int singleSteppingDisabledCounter;
+
     @SuppressWarnings("unused")
     public EspressoThreadLocalState(EspressoContext context) {
         typeStack = new ClassRegistry.TypeStack();
@@ -65,9 +67,9 @@ public class EspressoThreadLocalState {
     }
 
     public void setCurrentPlatformThread(StaticObject t) {
-        assert currentPlatformThread == null || currentPlatformThread == t;
         assert t != null && StaticObject.notNull(t);
         assert t.getKlass().getContext().getThreadAccess().getHost(t) == Thread.currentThread() : "Current thread fast access set by non-current thread";
+        assert currentPlatformThread == null || currentPlatformThread == t : currentPlatformThread + " vs " + t;
         currentPlatformThread = t;
     }
 
@@ -116,5 +118,18 @@ public class EspressoThreadLocalState {
 
     public VM.PrivilegedStack getPrivilegedStack() {
         return privilegedStack;
+    }
+
+    public void disableSingleStepping() {
+        singleSteppingDisabledCounter++;
+    }
+
+    public void enableSingleStepping() {
+        assert singleSteppingDisabledCounter > 0;
+        singleSteppingDisabledCounter--;
+    }
+
+    public boolean isSteppingDisabled() {
+        return singleSteppingDisabledCounter > 0;
     }
 }
