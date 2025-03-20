@@ -248,9 +248,9 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
         }
     }
 
-    private Value emitCompareAndSwap(boolean isLogic, LIRKind accessKind, Value address, Value expectedValue, Value newValue, Value trueValue, Value falseValue, BarrierType barrierType) {
+    private Value emitCompareAndSwapHelper(LIRKind accessKind, Value address, Value expectedValue, Value newValue, BarrierType barrierType) {
         ValueKind<?> kind = newValue.getValueKind();
-        assert kind.equals(expectedValue.getValueKind());
+        GraalError.guarantee(kind.equals(expectedValue.getValueKind()), "%s != %s", kind, expectedValue.getValueKind());
 
         AMD64AddressValue addressValue = asAddressValue(address);
         LIRKind integerAccessKind = accessKind;
@@ -271,15 +271,20 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
         AllocatableValue allocatableNewValue = asAllocatable(reinterpretedNewValue, integerAccessKind);
         emitMove(aRes, reinterpretedExpectedValue);
         emitCompareAndSwapOp(integerAccessKind, memKind, aRes, addressValue, allocatableNewValue, barrierType);
+        return aRes;
+    }
+
+    private Value emitCompareAndSwap(boolean isLogic, LIRKind accessKind, Value address, Value expectedValue, Value newValue, Value trueValue, Value falseValue, BarrierType barrierType) {
+        Value aRes = emitCompareAndSwapHelper(accessKind, address, expectedValue, newValue, barrierType);
 
         if (isLogic) {
             assert trueValue.getValueKind().equals(falseValue.getValueKind());
             return emitCondMoveOp(Condition.EQ, trueValue, falseValue, false, false);
         } else {
-            if (isXmm) {
+            if (((AMD64Kind) accessKind.getPlatformKind()).isXMM()) {
                 return arithmeticLIRGen.emitReinterpret(accessKind, aRes);
             } else {
-                Variable result = newVariable(kind);
+                Variable result = newVariable(newValue.getValueKind());
                 emitMove(result, aRes);
                 return result;
             }
@@ -299,13 +304,11 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
 
     public void emitCompareAndSwapBranch(LIRKind kind, AMD64AddressValue address, Value expectedValue, Value newValue, Condition condition, LabelRef trueLabel, LabelRef falseLabel,
                     double trueLabelProbability, BarrierType barrierType) {
-        assert kind.getPlatformKind().getSizeInBytes() <= expectedValue.getValueKind().getPlatformKind().getSizeInBytes();
-        assert kind.getPlatformKind().getSizeInBytes() <= newValue.getValueKind().getPlatformKind().getSizeInBytes();
-        assert condition == Condition.EQ || condition == Condition.NE;
-        AMD64Kind memKind = (AMD64Kind) kind.getPlatformKind();
-        RegisterValue raxValue = AMD64.rax.asValue(kind);
-        emitMove(raxValue, expectedValue);
-        emitCompareAndSwapOp(kind, memKind, raxValue, address, asAllocatable(newValue), barrierType);
+        GraalError.guarantee(kind.getPlatformKind().getSizeInBytes() <= expectedValue.getValueKind().getPlatformKind().getSizeInBytes(), "kind=%s, expectedValue=%s", kind, expectedValue);
+        GraalError.guarantee(kind.getPlatformKind().getSizeInBytes() <= newValue.getValueKind().getPlatformKind().getSizeInBytes(), "kind=%s, newValue=%s", kind, newValue);
+        GraalError.guarantee(condition == Condition.EQ || condition == Condition.NE, "condition=%s, address=%s, expectedValue=%s, newValue=%s", condition, address, expectedValue, newValue);
+
+        emitCompareAndSwapHelper(kind, address, expectedValue, newValue, barrierType);
         append(new BranchOp(condition, trueLabel, falseLabel, trueLabelProbability));
     }
 
