@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,30 +22,13 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.svm.core.jni;
-
-import com.oracle.svm.core.Uninterruptible;
-import com.oracle.svm.core.threadlocal.FastThreadLocalFactory;
-import com.oracle.svm.core.threadlocal.FastThreadLocalObject;
+package com.oracle.svm.core.heap;
 
 /**
- * Retains one exception per thread that is pending to be handled in that thread (or none).
+ * The smallest possible object. Very similar to {@link FillerObject}, except that instances of this
+ * class may be allocated at run-time.
  */
-public class JNIThreadLocalPendingException {
-    private static final FastThreadLocalObject<Throwable> pendingException = FastThreadLocalFactory.createObject(Throwable.class, "JNIThreadLocalPendingException.pendingException");
-
-    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
-    public static Throwable get() {
-        return pendingException.get();
-    }
-
-    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
-    public static void set(Throwable t) {
-        pendingException.set(t);
-    }
-
-    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
-    public static void clear() {
-        set(null);
+public final class SmallestPossibleObject {
+    public SmallestPossibleObject() {
     }
 }
