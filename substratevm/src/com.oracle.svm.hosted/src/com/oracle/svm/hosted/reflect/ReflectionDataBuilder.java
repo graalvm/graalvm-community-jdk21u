@@ -80,7 +80,6 @@ import com.oracle.graal.pointsto.meta.AnalysisUniverse;
 import com.oracle.svm.core.hub.ClassForNameSupport;
 import com.oracle.svm.core.hub.DynamicHub;
 import com.oracle.svm.core.reflect.SubstrateAccessor;
-import com.oracle.svm.core.util.UserError;
 import com.oracle.svm.core.util.VMError;
 import com.oracle.svm.hosted.ConditionalConfigurationRegistry;
 import com.oracle.svm.hosted.FeatureImpl.BeforeAnalysisAccessImpl;
@@ -502,7 +501,7 @@ public class ReflectionDataBuilder extends ConditionalConfigurationRegistry impl
 
     private void checkNotSealed() {
         if (sealed) {
-            throw UserError.abort("Too late to add classes, methods, and fields for reflective access. Registration must happen in a Feature before the analysis has finished.");
+            throw new UnsupportedFeatureException("Too late to add classes, methods, and fields for reflective access. Registration must happen in a Feature before the analysis has finished.");
         }
     }
 
@@ -995,11 +994,15 @@ public class ReflectionDataBuilder extends ConditionalConfigurationRegistry impl
 
     @Override
     public void registerHeapDynamicHub(Object object, ScanReason reason) {
-        assert !sealed;
         DynamicHub hub = (DynamicHub) object;
         Class<?> javaClass = hub.getHostedJavaClass();
-        if (heapDynamicHubs.add(hub) && !SubstitutionReflectivityFilter.shouldExclude(javaClass, metaAccess, universe)) {
-            registerTypesForClass(metaAccess.lookupJavaType(javaClass), javaClass);
+        if (heapDynamicHubs.add(hub)) {
+            if (sealed) {
+                throw new UnsupportedFeatureException("Registering new class for reflection when the image heap is already sealed: " + javaClass);
+            }
+            if (!SubstitutionReflectivityFilter.shouldExclude(javaClass, metaAccess, universe)) {
+                registerTypesForClass(metaAccess.lookupJavaType(javaClass), javaClass);
+            }
         }
     }
 
@@ -1011,24 +1014,32 @@ public class ReflectionDataBuilder extends ConditionalConfigurationRegistry impl
 
     @Override
     public void registerHeapReflectionField(Field reflectField, ScanReason reason) {
-        assert !sealed;
         AnalysisField analysisField = metaAccess.lookupJavaField(reflectField);
-        if (heapFields.put(analysisField, reflectField) == null && !SubstitutionReflectivityFilter.shouldExclude(reflectField, metaAccess, universe)) {
-            registerTypesForField(analysisField, reflectField, false);
-            if (analysisField.getDeclaringClass().isAnnotation()) {
-                processAnnotationField(reflectField);
+        if (heapFields.put(analysisField, reflectField) == null) {
+            if (sealed) {
+                throw new UnsupportedFeatureException("Registering new field for reflection when the image heap is already sealed: " + reflectField);
+            }
+            if (!SubstitutionReflectivityFilter.shouldExclude(reflectField, metaAccess, universe)) {
+                registerTypesForField(analysisField, reflectField, false);
+                if (analysisField.getDeclaringClass().isAnnotation()) {
+                    processAnnotationField(reflectField);
+                }
             }
         }
     }
 
     @Override
     public void registerHeapReflectionExecutable(Executable reflectExecutable, ScanReason reason) {
-        assert !sealed;
         AnalysisMethod analysisMethod = metaAccess.lookupJavaMethod(reflectExecutable);
-        if (heapMethods.put(analysisMethod, reflectExecutable) == null && !SubstitutionReflectivityFilter.shouldExclude(reflectExecutable, metaAccess, universe)) {
-            registerTypesForMethod(analysisMethod, reflectExecutable);
-            if (reflectExecutable instanceof Method && reflectExecutable.getDeclaringClass().isAnnotation()) {
-                processAnnotationMethod(false, (Method) reflectExecutable);
+        if (heapMethods.put(analysisMethod, reflectExecutable) == null) {
+            if (sealed) {
+                throw new UnsupportedFeatureException("Registering new method for reflection when the image heap is already sealed: " + reflectExecutable);
+            }
+            if (!SubstitutionReflectivityFilter.shouldExclude(reflectExecutable, metaAccess, universe)) {
+                registerTypesForMethod(analysisMethod, reflectExecutable);
+                if (reflectExecutable instanceof Method && reflectExecutable.getDeclaringClass().isAnnotation()) {
+                    processAnnotationMethod(false, (Method) reflectExecutable);
+                }
             }
         }
     }
