@@ -49,7 +49,7 @@ permissions:
 jobs:
   build-graalvm:
     name: /${{ matrix.env.PRIMARY }} ${{ matrix.env.GATE_TAGS }} JDK${{ matrix.env.JDK_VERSION }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -161,7 +161,8 @@ jobs:
     - name: Install style dependencies
       if: ${{ env.MX_RUNS_STYLE == 'true' }}
       run: |
-        sudo apt install python3-pip python-setuptools
+        sudo apt install python3-pip
+        sudo pip intall python-setuptools
         sudo pip install ninja_syntax$(jq -r '.pip.ninja_syntax' common.json)
         sudo pip install lazy-object-proxy$(jq -r '.pip["lazy-object-proxy"]' common.json)
         sudo pip install pylint$(jq -r '.pip.pylint' common.json)
