@@ -345,6 +345,24 @@ suite = {
       "workingSets" : "Graal,HotSpot,Test",
     },
 
+    # javaCompliance: 23+ effectively disables these tests when running graalvm-jdk21
+    "org.graalvm.compiler.hotspot.jdk23.test" : {
+      "testProject" : True,
+      "subDir" : "src",
+      "sourceDirs" : ["src"],
+      "dependencies" : [
+        "jdk.internal.vm.compiler.test",
+      ],
+      "requiresConcealed" : {
+        "java.base" : [
+        ],
+      },
+      "checkstyle": "jdk.internal.vm.compiler",
+      "javaCompliance" : "23+",
+      "javaPreviewNeeded": "23+",
+      "workingSets" : "Graal,HotSpot,Test",
+    },
+
     "org.graalvm.compiler.virtual.bench" : {
       "subDir" : "src",
       "sourceDirs" : ["src"],
