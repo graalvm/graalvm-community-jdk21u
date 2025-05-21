@@ -2711,7 +2711,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
 
         ValueNode realReturnVal = processReturnValue(returnVal, returnKind);
 
-        frameState.setRethrowException(false);
+        assert !frameState.rethrowException() : frameState;
         frameState.clearStack();
         beforeReturn(realReturnVal, returnKind);
         if (parent == null) {
@@ -2950,10 +2950,6 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
                     bci = ((ExceptionDispatchBlock) targetBlock).deoptBci;
                 }
                 FrameStateBuilder newState = target.state.copy();
-                // Perform the same logic as is done in processBlock
-                if (targetBlock != blockMap.getUnwindBlock() && !(targetBlock instanceof ExceptionDispatchBlock)) {
-                    newState.setRethrowException(false);
-                }
                 clearNonLiveLocalsAtLoopExitCreation(targetBlock, newState);
 
                 for (BciBlock loop : exitLoops) {
@@ -2991,9 +2987,8 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
         if (targetBlock != blockMap.getUnwindBlock()) {
             return new Target(target, state);
         }
-        FrameStateBuilder newState = state;
-        newState = newState.copy();
-        newState.setRethrowException(false);
+        assert !state.rethrowException() : state;
+        FrameStateBuilder newState = state.copy();
         if (!method.isSynchronized()) {
             return new Target(target, newState);
         }
@@ -3069,11 +3064,36 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
     }
 
     @SuppressWarnings("try")
-    private FixedNode createTarget(BciBlock block, FrameStateBuilder state, boolean canReuseInstruction, boolean canReuseState) {
-        assert block != null && state != null;
-        assert !block.isExceptionEntry() || state.stackSize() == 1;
+    private FixedNode createTarget(BciBlock block, FrameStateBuilder initialState, boolean canReuseInstruction, boolean canReuseState) {
+        assert block != null;
+        assert initialState != null;
+        assert !block.isExceptionEntry() || initialState.stackSize() == 1;
 
-        try (DebugCloseable context = openNodeContext(state, block.startBci)) {
+        try (DebugCloseable context = openNodeContext(initialState, block.startBci)) {
+            if (block == blockMap.getUnwindBlock()) {
+                int expectedDepth = initialState.getMethod().isSynchronized() && methodSynchronizedObject != null ? 1 : 0;
+                /*
+                 * methodSynchronizeObject==null indicates that the methodSynchronizeObject has been
+                 * released unexpectedly but we are already on the path to the unwind for throwing
+                 * an IllegalMonitorStateException. Thus, we need to break up an exception loop in
+                 * the unwind path.
+                 */
+                if (initialState.lockDepth(false) != expectedDepth) {
+                    return handleUnstructuredLockingForUnwindTarget("too few monitorexits exiting frame", initialState);
+                }
+            }
+
+            FrameStateBuilder state = initialState;
+            if (initialState.rethrowException() && (block == blockMap.getUnwindBlock() || !(block instanceof ExceptionDispatchBlock))) {
+                /*
+                 * Exceptions are only rethrown if deopts happen during the dispatch process. The
+                 * unwind block is the only ExceptionDispatchBlock where rethrowException must be
+                 * false.
+                 */
+                state = initialState.copy();
+                state.setRethrowException(false);
+            }
+
             if (getFirstInstruction(block) == null) {
                 /*
                  * This is the first time we see this block as a branch target. Create and return a
@@ -3099,7 +3119,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
                 Target target = checkUnwind(getFirstInstruction(block), block, state);
                 target = checkLoopExit(target, block);
                 FixedNode result = target.entry;
-                FrameStateBuilder currentEntryState = target.state == state ? (canReuseState ? state : state.copy()) : target.state;
+                FrameStateBuilder currentEntryState = target.state == initialState ? (canReuseState ? initialState : initialState.copy()) : target.state;
                 setEntryState(block, currentEntryState);
                 clearNonLiveLocalsAtTargetCreation(block, currentEntryState);
 
@@ -3118,13 +3138,11 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
                 Target target = checkLoopExit(new Target(loopEnd, state.copy()), block);
                 FixedNode result = target.entry;
                 /*
-                 * It is guaranteed that a loop header cannot be an ExceptionDispatchBlock. By the
-                 * time the backward loop edge is reached, the block will already be processed, and
-                 * its rethrow exception will be set to false.
+                 * It is guaranteed that a loop header cannot be an ExceptionDispatchBlock.
+                 * Therefore, the rethrowException flag of its entry state must be false.
                  */
-                assert !(block instanceof ExceptionDispatchBlock);
-                assert !getEntryState(block).rethrowException();
-                target.state.setRethrowException(false);
+                assert !getEntryState(block).rethrowException() : getEntryState(block);
+                assert !target.state.rethrowException() : target.state;
                 getEntryState(block).merge(loopBegin, target.state);
 
                 debug.log("createTarget %s: merging backward branch to loop header %s, result: %s", block, loopBegin, result);
@@ -3173,6 +3191,11 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
         }
     }
 
+    @SuppressWarnings("unused")
+    protected FixedNode handleUnstructuredLockingForUnwindTarget(String msg, FrameStateBuilder state) {
+        throw bailout("Unstructured locking: " + msg);
+    }
+
     /**
      * Returns a block begin node with the specified state. If the specified probability is 0, the
      * block deoptimizes immediately.
@@ -3211,10 +3234,6 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
             lastInstr = firstInstruction;
             frameState = getEntryState(block);
             currentBlock = block;
-
-            if (block != blockMap.getUnwindBlock() && !(block instanceof ExceptionDispatchBlock)) {
-                frameState.setRethrowException(false);
-            }
 
             if (firstInstruction instanceof AbstractMergeNode) {
                 setMergeStateAfter(block, firstInstruction);
