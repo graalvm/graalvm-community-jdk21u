@@ -105,7 +105,7 @@ final class BundleSupport {
     private static final int BUNDLE_FILE_FORMAT_VERSION_MAJOR = 0;
     private static final int BUNDLE_FILE_FORMAT_VERSION_MINOR = 9;
 
-    private static final String BUNDLE_INFO_MESSAGE_PREFIX = "Native Image Bundles: ";
+    static final String BUNDLE_INFO_MESSAGE_PREFIX = "Native Image Bundles: ";
     private static final String BUNDLE_TEMP_DIR_PREFIX = "bundleRoot-";
     private static final String ORIGINAL_DIR_EXTENSION = ".orig";
 
@@ -124,7 +124,6 @@ final class BundleSupport {
     boolean useContainer;
 
     private static final String DEFAULT_DOCKERFILE = getDockerfile("Dockerfile");
-    private static final String DEFAULT_DOCKERFILE_MUSLIB = getDockerfile("Dockerfile_muslib_extension");
 
     private static String getDockerfile(String name) {
         return NativeImage.getResource("/container-default/" + name);
@@ -228,9 +227,6 @@ final class BundleSupport {
     void createDockerfile(Path dockerfile) {
         nativeImage.showVerboseMessage(nativeImage.isVerbose(), BUNDLE_INFO_MESSAGE_PREFIX + "Creating default Dockerfile for native-image bundle.");
         String dockerfileText = DEFAULT_DOCKERFILE;
-        if (nativeImage.staticExecutable && nativeImage.libC.equals("musl")) {
-            dockerfileText += System.lineSeparator() + DEFAULT_DOCKERFILE_MUSLIB;
-        }
         try {
             Files.writeString(dockerfile, dockerfileText);
             dockerfile.toFile().deleteOnExit();
