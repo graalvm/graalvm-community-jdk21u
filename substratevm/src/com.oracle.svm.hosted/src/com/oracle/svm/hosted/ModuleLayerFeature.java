@@ -24,6 +24,8 @@
  */
 package com.oracle.svm.hosted;
 
+import static com.oracle.svm.core.util.VMError.shouldNotReachHereAtRuntime;
+
 import java.lang.module.Configuration;
 import java.lang.module.FindException;
 import java.lang.module.ModuleDescriptor;
@@ -67,9 +69,8 @@ import com.oracle.svm.core.feature.InternalFeature;
 import com.oracle.svm.core.jdk.Resources;
 import com.oracle.svm.core.jdk.RuntimeClassLoaderValueSupport;
 import com.oracle.svm.core.jdk.RuntimeModuleSupport;
-import com.oracle.svm.core.util.HostedSubstrateUtil;
 import com.oracle.svm.core.util.VMError;
-import com.oracle.svm.hosted.FeatureImpl.AnalysisAccessBase;
+import com.oracle.svm.hosted.ClassLoaderFeature;
 import com.oracle.svm.util.LogUtils;
 import com.oracle.svm.util.ModuleSupport;
 import com.oracle.svm.util.ReflectionUtil;
@@ -436,7 +437,7 @@ public final class ModuleLayerFeature implements InternalFeature {
                 moduleLayerFeatureUtils.patchModuleLayerField(runtimeSyntheticModule, runtimeModuleLayer);
             }
             ServicesCatalog servicesCatalog = synthesizeRuntimeModuleLayerServicesCatalog(nameToModule);
-            patchRuntimeModuleLayer(accessImpl, runtimeModuleLayer, nameToModule, parentLayers, servicesCatalog);
+            patchRuntimeModuleLayer(runtimeModuleLayer, nameToModule, parentLayers, servicesCatalog);
             return runtimeModuleLayer;
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException ex) {
             throw VMError.shouldNotReachHere("Failed to synthesize the runtime module layer: " + runtimeModuleLayer, ex);
@@ -770,7 +771,7 @@ public final class ModuleLayerFeature implements InternalFeature {
         }
 
         public Module getRuntimeModuleForHostedModule(ClassLoader hostedLoader, String hostedModuleName, boolean optional) {
-            ClassLoader loader = HostedSubstrateUtil.getRuntimeClassLoader(hostedLoader);
+            ClassLoader loader = ClassLoaderFeature.getRuntimeClassLoader(hostedLoader);
             Map<String, Module> loaderRuntimeModules = runtimeModules.get(loader);
             if (loaderRuntimeModules == null) {
                 if (optional) {
@@ -801,7 +802,7 @@ public final class ModuleLayerFeature implements InternalFeature {
         }
 
         public Module getOrCreateRuntimeModuleForHostedModule(ClassLoader hostedLoader, String hostedModuleName, ModuleDescriptor runtimeModuleDescriptor) {
-            ClassLoader loader = HostedSubstrateUtil.getRuntimeClassLoader(hostedLoader);
+            ClassLoader loader = ClassLoaderFeature.getRuntimeClassLoader(hostedLoader);
             synchronized (runtimeModules) {
                 Module runtimeModule = getRuntimeModuleForHostedModule(loader, hostedModuleName, true);
                 if (runtimeModule != null) {
@@ -1032,9 +1033,8 @@ public final class ModuleLayerFeature implements InternalFeature {
             moduleLayerParentsField.set(moduleLayer, parents);
         }
 
-        void patchModuleLayerServicesCatalogField(AnalysisAccessBase accessImpl, ModuleLayer moduleLayer, ServicesCatalog servicesCatalog) throws IllegalAccessException {
+        void patchModuleLayerServicesCatalogField(ModuleLayer moduleLayer, ServicesCatalog servicesCatalog) throws IllegalAccessException {
             moduleLayerServicesCatalogField.set(moduleLayer, servicesCatalog);
-            accessImpl.rescanField(moduleLayer, moduleLayerServicesCatalogField);
         }
 
         ClassLoader getClassLoaderForBootLayerModule(String name) {
