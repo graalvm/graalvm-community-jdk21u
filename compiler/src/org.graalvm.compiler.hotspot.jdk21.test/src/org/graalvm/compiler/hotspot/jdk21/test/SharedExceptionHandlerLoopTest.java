@@ -22,17 +22,17 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.graalvm.compiler.hotspot.jdk23.test;
+package org.graalvm.compiler.hotspot.jdk21.test;
 
-import java.lang.classfile.ClassFile;
-import java.lang.classfile.Label;
 import java.lang.constant.ClassDesc;
-import java.lang.constant.ConstantDescs;
-import java.lang.constant.MethodTypeDesc;
 
 import org.junit.Test;
 
 import org.graalvm.compiler.core.test.CustomizedBytecodePatternTest;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 import jdk.vm.ci.meta.ResolvedJavaMethod;
 
 /**
@@ -115,50 +115,61 @@ public class SharedExceptionHandlerLoopTest extends CustomizedBytecodePatternTes
      */
     @Override
     protected byte[] generateClass(String internalClassName) {
-        MethodTypeDesc getMethodTypeDesc = MethodTypeDesc.of(ConstantDescs.CD_Object, ConstantDescs.CD_Object, ConstantDescs.CD_Object);
+        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+        cw.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC, internalClassName, null, "java/lang/Object", null);
 
-        ClassDesc thisClass = ClassDesc.of(internalClassName.replace('/', '.'));
-        return ClassFile.of().build(thisClass, classBuilder -> classBuilder
-        // @formatter:off
-                        .withMethod("testMethod", getMethodTypeDesc, ACC_PUBLIC | ACC_STATIC, methodBuilder -> methodBuilder.withCode(codeBuilder -> {
-                            Label start = codeBuilder.newLabel();
-                            Label loopExcEnd = codeBuilder.newLabel();
-                            Label loopNPEHandler = codeBuilder.newLabel();
-                            Label loopIAEHandler = codeBuilder.newLabel();
-                            Label loopEHandler = codeBuilder.newLabel();
-                            Label retLabel = codeBuilder.newLabel();
+        MethodVisitor mv = cw.visitMethod(
+                        Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC,
+                        "testMethod",
+                        "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+                        null,
+                        new String[]{"java/lang/NullPointerException", "java/lang/IllegalAccessError", "java/lang/Exception"});
+        mv.visitCode();
 
-                            Label afterLoopExcStart = codeBuilder.newLabel();
-                            Label afterLoopExcEnd = codeBuilder.newLabel();
+        Label start = new Label();
+        Label loopExcEnd = new Label();
+        Label loopNPEHandler = new Label();
+        Label loopIAEHandler = new Label();
+        Label loopEHandler = new Label();
+        Label afterLoopExcStart = new Label();
+        Label afterLoopExcEnd = new Label();
+        Label retLabel = new Label();
 
-                            codeBuilder
-                                            .labelBinding(start)
-                                            .aload(0)
-                                            .invokevirtual(ConstantDescs.CD_Object, "toString", MethodTypeDesc.of(ConstantDescs.CD_String))
-                                            .labelBinding(loopExcEnd)
-                                            .areturn()
-                                            .labelBinding(loopNPEHandler)
-                                            .exceptionCatch(start, loopExcEnd, loopNPEHandler, cd(NullPointerException.class))
-                                            .astore(2)
-                                            .aconst_null()
-                                            .areturn()
-                                            .labelBinding(loopIAEHandler)
-                                            .exceptionCatch(start, loopExcEnd, loopIAEHandler, cd(IllegalAccessError.class))
-                                            .astore(2)
-                                            .goto_(start)
-                                            .labelBinding(loopEHandler)
-                                            .exceptionCatch(start, loopExcEnd, loopEHandler, ConstantDescs.CD_Exception)
-                                            .astore(2)
-                                            .goto_(retLabel)
-                                            .labelBinding(retLabel)
-                                            .labelBinding(afterLoopExcStart)
-                                            .aload(1)
-                                            .invokevirtual(ConstantDescs.CD_Object, "toString", MethodTypeDesc.of(ConstantDescs.CD_String))
-                                            .labelBinding(afterLoopExcEnd)
-                                            .exceptionCatch(afterLoopExcStart, afterLoopExcEnd, loopNPEHandler, cd(NullPointerException.class))
-                                            .areturn();
-                        })));
-        // @formatter:on
+        mv.visitTryCatchBlock(start, loopExcEnd, loopNPEHandler, "java/lang/NullPointerException");
+        mv.visitTryCatchBlock(start, loopExcEnd, loopIAEHandler, "java/lang/IllegalAccessError");
+        mv.visitTryCatchBlock(start, loopExcEnd, loopEHandler, "java/lang/Exception");
+        mv.visitTryCatchBlock(afterLoopExcStart, afterLoopExcEnd, loopNPEHandler, "java/lang/NullPointerException");
+
+        mv.visitLabel(start);
+        mv.visitVarInsn(Opcodes.ALOAD, 0);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Object", "toString", "()Ljava/lang/String;", false);
+        mv.visitLabel(loopExcEnd);
+        mv.visitInsn(Opcodes.ARETURN);
+
+        mv.visitLabel(loopNPEHandler);
+        mv.visitVarInsn(Opcodes.ASTORE, 2);
+        mv.visitInsn(Opcodes.ACONST_NULL);
+        mv.visitInsn(Opcodes.ARETURN);
+
+        mv.visitLabel(loopIAEHandler);
+        mv.visitVarInsn(Opcodes.ASTORE, 2);
+        mv.visitJumpInsn(Opcodes.GOTO, start);
+
+        mv.visitLabel(loopEHandler);
+        mv.visitVarInsn(Opcodes.ASTORE, 2);
+        mv.visitJumpInsn(Opcodes.GOTO, retLabel);
+
+        mv.visitLabel(retLabel);
+        mv.visitLabel(afterLoopExcStart);
+        mv.visitVarInsn(Opcodes.ALOAD, 1);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Object", "toString", "()Ljava/lang/String;", false);
+        mv.visitLabel(afterLoopExcEnd);
+        mv.visitInsn(Opcodes.ARETURN);
+
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+        cw.visitEnd();
+        return cw.toByteArray();
     }
 
     public static ClassDesc cd(Class<?> klass) {
