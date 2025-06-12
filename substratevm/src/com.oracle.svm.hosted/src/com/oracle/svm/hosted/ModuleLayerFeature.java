@@ -70,7 +70,6 @@ import com.oracle.svm.core.jdk.Resources;
 import com.oracle.svm.core.jdk.RuntimeClassLoaderValueSupport;
 import com.oracle.svm.core.jdk.RuntimeModuleSupport;
 import com.oracle.svm.core.util.VMError;
-import com.oracle.svm.hosted.ClassLoaderFeature;
 import com.oracle.svm.util.LogUtils;
 import com.oracle.svm.util.ModuleSupport;
 import com.oracle.svm.util.ReflectionUtil;
