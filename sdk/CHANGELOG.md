@@ -4,6 +4,12 @@ This changelog summarizes major changes between GraalVM SDK versions. The main f
 
 ## Version 23.1.5
 * (GR-54674) Added the options `engine.TraceSourceCache` and `engine.TraceSourceCacheDetails` to allow tracing of source cache hits, misses, failures and evictions.
+## Version 25.0.0
+* GR-60636 Truffle now stops compiling when the code cache fills up on HotSpot. A warning is printed when that happens.
+* GR-51664 Improved `PolyglotException#toString` and `PolyglotException#printStackTrace`.
+  * The short description returned by `PolyglotException#toString` now starts with the qualified name of the metaobject of the guest exception, if the exception represents a guest exception that has a metaobject. Otherwise, it starts with the qualified name of the `PolyglotException` class.
+  * `PolyglotException#printStackTrace` now always starts with the string returned by `PolyglotException#toString()` like for regular Java Throwable objects.
+* GR-54673 Added the option `engine.MaximumCompilations` to protect against too many repeated compilations of the same call target. The default value is `100`.
 
 ## Version 23.1.3
 * (GR-50682) The Truffle languages and instrument implementations are now loaded exclusively using the context class loader if it is set and Truffle is found there. If the context class loader is not set or Truffle is not found, then the system class loader is used instead. Previously, the context and system class loader were used to load Truffle languages and instruments which causes issues if the context class loader does not delegate to the system class loader and classes are loaded from both. Context class loaders that do not delegate to the system class loader are commonly used to implement hot-reload functionality.
