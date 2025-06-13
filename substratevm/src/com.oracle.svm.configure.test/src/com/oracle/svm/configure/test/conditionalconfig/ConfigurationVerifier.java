@@ -24,6 +24,8 @@
  */
 package com.oracle.svm.configure.test.conditionalconfig;
 
+import static org.junit.Assume.assumeTrue;
+
 import java.io.IOException;
 import java.io.StringWriter;
 import java.net.URL;
@@ -44,10 +46,7 @@ public class ConfigurationVerifier {
 
     @Test
     public void testConfig() throws Exception {
-        String enabledProperty = System.getProperty(ConfigurationVerifier.class.getName() + ".enabled");
-        if (!Boolean.parseBoolean(enabledProperty)) {
-            return;
-        }
+        assumeTrue("Test must be explicitly enabled because it is not designed for regular execution", Boolean.getBoolean(ConfigurationVerifier.class.getName() + ".enabled"));
         ConfigurationSet actualConfig = loadActualConfig();
         ConfigurationSet expectedConfig = loadExpectedConfig();
 
