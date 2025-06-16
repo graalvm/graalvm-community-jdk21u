@@ -105,9 +105,9 @@ suite = {
       "license": ["MIT"],
     },
 
-    "TRUFFLE_ASM_9.5" : {
-      "digest" : "sha512:7a49aaa0c4b513ca54ce684a74a3848ba4caf486320125f08cb8872720dc1e789538729f45c46d6ccf1b1ea54f7c3770dc9682d13a3f1813a348168ee5c40b82",
-      "urls": ["https://lafo.ssw.uni-linz.ac.at/pub/graal-external-deps/com.oracle.truffle.api.impl.asm-9.5.0.jar"],
+    "TRUFFLE_ASM_9.7.1" : {
+      "digest" : "sha512:e677171df27f646c84f078d5a6256a84c871c0b02088953f204c424f61ad453fc52726370fc3f5bd5e6ba6bf70d4c0c735d09a5c3e298db289ae4c9e628b4c57",
+      "urls": ["https://lafo.ssw.uni-linz.ac.at/pub/graal-external-deps/com.oracle.truffle.api.impl.asm-9.7.1.jar"],
     },
 
     "ICU4J" : {
@@ -304,7 +304,7 @@ suite = {
       "sourceDirs" : ["src"],
       "dependencies" : [
         "com.oracle.truffle.api.exception",
-        "truffle:TRUFFLE_ASM_9.5",
+        "truffle:TRUFFLE_ASM_9.7.1",
       ],
       "requires" : [
         "java.sql",
@@ -638,7 +638,7 @@ suite = {
       "sourceDirs" : ["src"],
       "dependencies" : [
         "com.oracle.truffle.api",
-        "truffle:TRUFFLE_ASM_9.5",
+        "truffle:TRUFFLE_ASM_9.7.1",
       ],
       "requires" : [
         "jdk.unsupported", # sun.misc.Unsafe
