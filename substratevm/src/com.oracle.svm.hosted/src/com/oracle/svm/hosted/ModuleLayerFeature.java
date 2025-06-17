@@ -67,7 +67,6 @@ import com.oracle.svm.core.feature.InternalFeature;
 import com.oracle.svm.core.jdk.Resources;
 import com.oracle.svm.core.jdk.RuntimeClassLoaderValueSupport;
 import com.oracle.svm.core.jdk.RuntimeModuleSupport;
-import com.oracle.svm.core.util.HostedSubstrateUtil;
 import com.oracle.svm.core.util.VMError;
 import com.oracle.svm.util.LogUtils;
 import com.oracle.svm.util.ModuleSupport;
@@ -771,7 +770,7 @@ public final class ModuleLayerFeature implements InternalFeature {
         }
 
         public Module getRuntimeModuleForHostedModule(ClassLoader hostedLoader, String hostedModuleName, boolean optional) {
-            ClassLoader loader = HostedSubstrateUtil.getRuntimeClassLoader(hostedLoader);
+            ClassLoader loader = ClassLoaderFeature.getRuntimeClassLoader(hostedLoader);
             Map<String, Module> loaderRuntimeModules = runtimeModules.get(loader);
             if (loaderRuntimeModules == null) {
                 if (optional) {
@@ -802,7 +801,7 @@ public final class ModuleLayerFeature implements InternalFeature {
         }
 
         public Module getOrCreateRuntimeModuleForHostedModule(ClassLoader hostedLoader, String hostedModuleName, ModuleDescriptor runtimeModuleDescriptor) {
-            ClassLoader loader = HostedSubstrateUtil.getRuntimeClassLoader(hostedLoader);
+            ClassLoader loader = ClassLoaderFeature.getRuntimeClassLoader(hostedLoader);
             synchronized (runtimeModules) {
                 Module runtimeModule = getRuntimeModuleForHostedModule(loader, hostedModuleName, true);
                 if (runtimeModule != null) {
