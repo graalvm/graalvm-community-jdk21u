@@ -61,7 +61,7 @@ public class LinearImageHeapLayouter extends AbstractImageHeapLayouter<LinearIma
         for (LinearImageHeapPartition partition : getPartitions()) {
             partition.allocateObjects(allocator);
         }
-        initializeHeapInfo(imageHeap.countDynamicHubs());
+        initializeHeapInfo(imageHeap.countAndVerifyDynamicHubs());
         return createLayoutInfo(startOffset, getWritablePrimitive().getStartOffset());
     }
 
