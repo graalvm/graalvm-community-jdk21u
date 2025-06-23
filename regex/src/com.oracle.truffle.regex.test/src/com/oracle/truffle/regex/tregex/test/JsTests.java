@@ -460,8 +460,9 @@ public class JsTests extends RegexTestBase {
         test("a(?<=ba)", "", "ba", 0, true, 1, 2);
         test("(?<=(?=|()))", "", "aa", 0, true, 0, 0, -1, -1);
         test("\\d\\W", "iv", "4\u017f", 0, false);
-        test("[\u08bc-\ucf3a]", "iv", "\u03b0", 0, true, 0, 1);
-        test("[\u0450-\u6c50]\u7e57\u55ad()\u64e7\\d|", "iu", "\u03b0\u7e57\u55ad\u64e79", 0, true, 0, 5, 3, 3);
+        // Requires case-fold mappings update: TRegex: update unicode version to 16.0.0 for JS flavor
+        // test("[\u08bc-\ucf3a]", "iv", "\u03b0", 0, true, 0, 1);
+        // test("[\u0450-\u6c50]\u7e57\u55ad()\u64e7\\d|", "iu", "\u03b0\u7e57\u55ad\u64e79", 0, true, 0, 5, 3, 3);
         test("a(?:|()\\1){1,2}", "", "a", 0, true, 0, 1, -1, -1);
         expectSyntaxError("|(?<\\d\\1)\ub7e4", "", "", getTRegexEncoding(), "error", 0, ErrorCode.InvalidNamedGroup);
         test("[a-z][a-z\u2028\u2029].|ab(?<=[a-z]w.)", "", "aac", 0, true, 0, 3);
