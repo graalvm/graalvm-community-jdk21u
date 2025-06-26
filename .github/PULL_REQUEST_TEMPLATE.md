@@ -20,4 +20,4 @@
 **Conflicts:** There were no conflicts.
 
 <!-- Add the backport issue that this PR closes -->
-**Closes:** https://github.com/graalvm/graalvm-community-jdk21u/issues/
+Closes: https://github.com/graalvm/graalvm-community-jdk21u/issues/
