@@ -41,7 +41,6 @@ import org.graalvm.nativeimage.c.function.InvokeCFunctionPointer;
 import org.graalvm.word.WordBase;
 
 import com.oracle.svm.core.snippets.KnownIntrinsics;
-import com.oracle.svm.core.thread.VMOperation;
 import com.oracle.svm.core.util.VMError;
 import com.oracle.svm.util.ReflectionUtil;
 
@@ -88,16 +87,6 @@ import jdk.vm.ci.meta.ResolvedJavaMethod;
  * is so simple that it can always be inlined into interruptible code, the method can be annotated
  * with {@link #mayBeInlined "mayBeInlined = true"}. Uninterruptible methods can always be inlined
  * into other uninterruptible methods.
- * <dl>
- * Some alternatives to annotation:
- * <dt>Code called from snippets</dt>
- * <dd>Snippet code is always inlined and runs to completion. Methods called only from snippets need
- * not be annotated.</dd>
- * <dt>Code called from VMOperations</dt>
- * <dd>VMOperation code runs single-threaded to completion. Public entry points that should only run
- * in VMOperations can be guarded with a call to
- * {@linkplain VMOperation#guaranteeInProgress(String)}.</dd>
- * </dl>
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.CONSTRUCTOR})
