@@ -186,6 +186,11 @@ public class ChunkedImageHeapPartition extends AbstractImageHeapPartition {
         return getEndOffset() - getStartOffset();
     }
 
+    @Override
+    public boolean isFiller() {
+        return false;
+    }
+
     private static class SizeComparator implements Comparator<ImageHeapObject> {
         @Override
         public int compare(ImageHeapObject o1, ImageHeapObject o2) {
