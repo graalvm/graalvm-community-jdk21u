@@ -180,17 +180,25 @@ public final class Safepoint {
         return Options.SafepointPromptnessFailureNanos.getValue().longValue();
     }
 
-    /**
-     * Used to wrap exceptions that are explicitly thrown by recurring callbacks.
-     */
-    static class SafepointException extends RuntimeException {
-        private static final long serialVersionUID = 1L;
-
-        final Throwable inner;
-
-        SafepointException(Throwable inner) {
-            this.inner = inner;
+    @Uninterruptible(reason = "Must not contain safepoint checks.")
+    private static void slowPathSafepointCheck(int newStatus, boolean callerHasJavaFrameAnchor, boolean popFrameAnchor) throws Throwable {
+        try {
+            slowPathSafepointCheck0(newStatus, callerHasJavaFrameAnchor, popFrameAnchor);
+        } catch (ThreadingSupportImpl.SafepointException e) {
+            /* This exception is intended to be thrown from safepoint checks, at one's own risk */
+            throw ThreadingSupportImpl.RecurringCallbackTimer.getAndClearPendingException();
+        } catch (Throwable ex) {
+            /*
+             * The foreign call from snippets to this method does not have an exception edge. So we
+             * could miss an exception handler if we unwind an exception from this method.
+             *
+             * Any exception coming out of a safepoint would be surprising to users. There is a good
+             * reason why Thread.stop() has been deprecated a long time ago (we do not support it on
+             * Substrate VM).
+             */
+            VMError.shouldNotReachHere(ex);
         }
+        exitSlowPathCheck();
     }
 
     /**
@@ -202,7 +210,7 @@ public final class Safepoint {
      * </ul>
      **/
     @Uninterruptible(reason = "Must not contain safepoint checks.")
-    private static void slowPathSafepointCheck(int newStatus, boolean callerHasJavaFrameAnchor, boolean popFrameAnchor) {
+    private static void slowPathSafepointCheck0(int newStatus, boolean callerHasJavaFrameAnchor, boolean popFrameAnchor) {
         final IsolateThread myself = CurrentIsolate.getCurrentThread();
 
         SafepointListenerSupport.singleton().beforeSlowpathSafepointCheck();
@@ -412,32 +420,9 @@ public final class Safepoint {
             Safepoint.setSafepointRequested(THREAD_REQUEST_RESET);
             return;
         }
+
         VMError.guarantee(StatusSupport.isStatusJava(), "Attempting to do a safepoint check when not in Java mode");
-
-        try {
-            /*
-             * Block on mutex held by thread that requested safepoint, i.e., transition to native
-             * code.
-             */
-            slowPathSafepointCheck(StatusSupport.STATUS_IN_JAVA, false, false);
-
-        } catch (SafepointException se) {
-            /* This exception is intended to be thrown from safepoint checks, at one's own risk */
-            throw se.inner;
-
-        } catch (Throwable ex) {
-            /*
-             * The foreign call from snippets to this method does not have an exception edge. So we
-             * could miss an exception handler if we unwind an exception from this method.
-             *
-             * Any exception coming out of a safepoint would be surprising to users. There is a good
-             * reason why Thread.stop() has been deprecated a long time ago (we do not support it on
-             * Substrate VM).
-             */
-            VMError.shouldNotReachHere(ex);
-        }
-
-        exitSlowPathCheck();
+        slowPathSafepointCheck(StatusSupport.STATUS_IN_JAVA, false, false);
     }
 
     @Uninterruptible(reason = "Must not contain safepoint checks")
@@ -544,7 +529,7 @@ public final class Safepoint {
      */
     @SubstrateForeignCallTarget(stubCallingConvention = false)
     @Uninterruptible(reason = "Must not contain safepoint checks")
-    private static void enterSlowPathTransitionFromNativeToNewStatus(int newStatus, boolean popFrameAnchor) {
+    private static void enterSlowPathTransitionFromNativeToNewStatus(int newStatus, boolean popFrameAnchor) throws Throwable {
         VMError.guarantee(StatusSupport.isStatusNativeOrSafepoint(), "Must either be at a safepoint or in native mode");
         VMError.guarantee(!SafepointBehavior.ignoresSafepoints(),
                         "The safepoint handling doesn't change the status of threads that ignore safepoints. So, the fast path transition must succeed and this slow path must not be called");
