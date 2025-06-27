@@ -433,8 +433,12 @@ public final class AMD64ArrayIndexOfOp extends AMD64ComplexVectorOp {
         asm.addq(index, bulkSize);
 
         boolean bulkLoopShortJmp = !((variant == ArrayIndexOfVariant.MatchRange && nValues == 4 || variant == ArrayIndexOfVariant.Table) && stride.value > 1);
-        // check if there are enough array slots remaining for the bulk loop
-        asm.cmpqAndJcc(index, arrayLength, ConditionFlag.Greater, skipBulkVectorLoop, bulkLoopShortJmp);
+        /*
+         * Check if there are enough array slots remaining for the bulk loop. Note: The alignment
+         * following the cmpAndJcc can lead to a jump distance > 127. This prevents safely using a
+         * short jump.
+         */
+        asm.cmpqAndJcc(index, arrayLength, ConditionFlag.Greater, skipBulkVectorLoop, false);
 
         asm.align(preferredLoopAlignment(crb));
         asm.bind(bulkVectorLoop);
