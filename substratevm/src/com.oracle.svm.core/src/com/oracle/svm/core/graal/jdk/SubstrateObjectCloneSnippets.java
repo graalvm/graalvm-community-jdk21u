@@ -41,6 +41,7 @@ import org.graalvm.compiler.nodes.StructuredGraph;
 import org.graalvm.compiler.nodes.ValueNode;
 import org.graalvm.compiler.nodes.extended.BranchProbabilityNode;
 import org.graalvm.compiler.nodes.extended.ForeignCallNode;
+import org.graalvm.compiler.nodes.extended.MembarNode;
 import org.graalvm.compiler.nodes.java.ArrayLengthNode;
 import org.graalvm.compiler.nodes.spi.LoweringTool;
 import org.graalvm.compiler.nodes.spi.VirtualizerTool;
@@ -175,6 +176,12 @@ public final class SubstrateObjectCloneSnippets extends SubstrateTemplates imple
         if (monitorOffset != 0) {
             BarrieredAccess.writeObject(result, monitorOffset, null);
         }
+
+        /*
+         * Emit a STORE_STORE barrier to ensure that other threads see consistent values for final
+         * fields and VM internal fields.
+         */
+        MembarNode.memoryBarrier(MembarNode.FenceKind.STORE_STORE);
 
         return result;
     }
