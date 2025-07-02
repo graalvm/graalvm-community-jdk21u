@@ -111,7 +111,7 @@ suite = {
             "dependencies": [
                 "truffle:TRUFFLE_API",
                 "truffle:TRUFFLE_NFI",
-                "truffle:TRUFFLE_ASM_9.5",
+                "truffle:TRUFFLE_ASM_9.7.1",
                 "com.oracle.truffle.espresso.jdwp",
             ],
             "requires": [
