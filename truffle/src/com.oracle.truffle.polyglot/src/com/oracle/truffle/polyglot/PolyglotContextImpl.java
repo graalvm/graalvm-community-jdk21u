@@ -83,6 +83,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 
+import org.graalvm.collections.Pair;
 import org.graalvm.options.OptionValues;
 import org.graalvm.polyglot.impl.AbstractPolyglotImpl.APIAccess;
 import org.graalvm.polyglot.impl.AbstractPolyglotImpl.AbstractHostLanguageService;
@@ -819,7 +820,7 @@ final class PolyglotContextImpl implements com.oracle.truffle.polyglot.PolyglotI
     @TruffleBoundary
     Object[] enterThreadChanged(boolean enterReverted, boolean pollSafepoint, boolean mustSucceed, boolean polyglotThreadFirstEnter,
                     boolean leaveAndEnter) {
-        List<Map.Entry<Thread, PolyglotThreadInfo>> deadThreads = null;
+        List<Pair<Thread, PolyglotThreadInfo>> deadThreads = null;
         PolyglotThreadInfo enteredThread = null;
         Object[] prev = null;
         Thread current = Thread.currentThread();
@@ -1000,18 +1001,18 @@ final class PolyglotContextImpl implements com.oracle.truffle.polyglot.PolyglotI
         }
     }
 
-    private void finalizeAndDisposeThreads(List<Map.Entry<Thread, PolyglotThreadInfo>> deadThreads) {
+    private void finalizeAndDisposeThreads(List<Pair<Thread, PolyglotThreadInfo>> deadThreads) {
         assert !Thread.holdsLock(this);
         Throwable ex = null;
-        for (Map.Entry<Thread, PolyglotThreadInfo> removedThreadInfoEntryToRemove : deadThreads) {
-            ex = notifyThreadFinalizing(removedThreadInfoEntryToRemove.getValue(), ex);
+        for (Pair<Thread, PolyglotThreadInfo> removedThreadInfoEntryToRemove : deadThreads) {
+            ex = notifyThreadFinalizing(removedThreadInfoEntryToRemove.getRight(), ex);
         }
 
         synchronized (this) {
-            for (Map.Entry<Thread, PolyglotThreadInfo> threadInfoEntryToRemove : deadThreads) {
-                ex = notifyThreadDisposing(threadInfoEntryToRemove.getValue(), ex);
-                threadInfoEntryToRemove.getValue().setContextThreadLocals(DISPOSED_CONTEXT_THREAD_LOCALS);
-                threads.remove(threadInfoEntryToRemove.getKey());
+            for (Pair<Thread, PolyglotThreadInfo> threadInfoEntryToRemove : deadThreads) {
+                ex = notifyThreadDisposing(threadInfoEntryToRemove.getRight(), ex);
+                threadInfoEntryToRemove.getRight().setContextThreadLocals(DISPOSED_CONTEXT_THREAD_LOCALS);
+                threads.remove(threadInfoEntryToRemove.getLeft());
             }
 
             if (ex != null) {
@@ -1020,20 +1021,22 @@ final class PolyglotContextImpl implements com.oracle.truffle.polyglot.PolyglotI
         }
     }
 
-    private List<Map.Entry<Thread, PolyglotThreadInfo>> collectDeadThreads() {
+    private List<Pair<Thread, PolyglotThreadInfo>> collectDeadThreads() {
         assert Thread.holdsLock(this);
-        List<Map.Entry<Thread, PolyglotThreadInfo>> deadThreads = null;
+        List<Pair<Thread, PolyglotThreadInfo>> deadThreads = null;
         /*
          * A thread is added to the threads map only by the thread itself, so when the thread is in
          * the map, and it is not alive, then it surely won't be used ever again.
          */
         for (Map.Entry<Thread, PolyglotThreadInfo> threadInfoEntry : threads.entrySet()) {
-            if (!threadInfoEntry.getKey().isAlive() && !threadInfoEntry.getValue().isFinalizingDeadThread()) {
+            Thread thread = threadInfoEntry.getKey();
+            PolyglotThreadInfo threadInfo = threadInfoEntry.getValue();
+            if (thread != null && threadInfo != null && !thread.isAlive() && !threadInfo.isFinalizingDeadThread()) {
                 if (deadThreads == null) {
                     deadThreads = new ArrayList<>();
                 }
-                deadThreads.add(threadInfoEntry);
-                threadInfoEntry.getValue().setFinalizingDeadThread();
+                deadThreads.add(Pair.create(thread, threadInfo));
+                threadInfo.setFinalizingDeadThread();
             }
         }
         return deadThreads;
