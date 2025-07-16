@@ -90,22 +90,35 @@ final class StackVerifier {
         @Override
         @RestrictHeapAccess(access = RestrictHeapAccess.Access.NO_ALLOCATION, reason = "Must not allocate while verifying the stack.")
         public boolean visitFrame(Pointer currentSP, CodePointer currentIP, CodeInfo codeInfo, DeoptimizedFrame deoptimizedFrame) {
-            verifyFrameReferencesVisitor.initialize();
+            verifyFrameReferencesVisitor.initialize(currentSP, currentIP);
             CodeInfoTable.visitObjectReferences(currentSP, currentIP, codeInfo, deoptimizedFrame, verifyFrameReferencesVisitor);
             result &= verifyFrameReferencesVisitor.result;
             return true;
         }
     }
 
-    private static class VerifyFrameReferencesVisitor implements ObjectReferenceVisitor {
+    public static class VerifyFrameReferencesVisitor implements ObjectReferenceVisitor {
+        private Pointer sp;
+        private CodePointer ip;
         private boolean result;
 
         @Platforms(Platform.HOSTED_ONLY.class)
         VerifyFrameReferencesVisitor() {
         }
 
-        public void initialize() {
+        @SuppressWarnings("hiding")
+        public void initialize(Pointer sp, CodePointer ip) {
+            this.sp = sp;
+            this.ip = ip;
             this.result = true;
+        }
+
+        public Pointer getSP() {
+            return sp;
+        }
+
+        public CodePointer getIP() {
+            return ip;
         }
 
         @Override
