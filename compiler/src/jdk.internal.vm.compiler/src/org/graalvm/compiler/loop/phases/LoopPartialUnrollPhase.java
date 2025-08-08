@@ -30,6 +30,8 @@ import org.graalvm.collections.EconomicMap;
 import org.graalvm.collections.Equivalence;
 import org.graalvm.compiler.debug.DebugContext;
 import org.graalvm.compiler.graph.Graph;
+import org.graalvm.compiler.graph.NodeBitMap;
+import org.graalvm.compiler.loop.phases.LoopTransformations.PreMainPostResult;
 import org.graalvm.compiler.nodes.GraphState;
 import org.graalvm.compiler.nodes.GraphState.StageFlag;
 import org.graalvm.compiler.nodes.LoopBeginNode;
@@ -54,7 +56,8 @@ public class LoopPartialUnrollPhase extends LoopPhase<LoopPolicies> {
         EconomicSetNodeEventListener listener = new EconomicSetNodeEventListener();
         boolean changed = true;
         EconomicMap<LoopBeginNode, OpaqueNode> opaqueUnrolledStrides = null;
-        boolean prePostInserted = false;
+        NodeBitMap newMainLoops = null;
+
         while (changed) {
             changed = false;
             try (Graph.NodeEventScope nes = graph.trackNodeEvents(listener)) {
@@ -69,10 +72,13 @@ public class LoopPartialUnrollPhase extends LoopPhase<LoopPolicies> {
                             if (loop.loopBegin().isSimpleLoop()) {
                                 // First perform the pre/post transformation and do the partial
                                 // unroll when we come around again.
-                                LoopTransformations.insertPrePostLoops(loop);
-                                prePostInserted = true;
+                                PreMainPostResult res = LoopTransformations.insertPrePostLoops(loop);
+                                if (newMainLoops == null) {
+                                    newMainLoops = graph.createNodeBitMap();
+                                }
+                                newMainLoops.markAndGrow(res.getMainLoop());
                                 changed = true;
-                            } else if (prePostInserted) {
+                            } else if (newMainLoops != null && newMainLoops.isMarkedAndGrow(loop.loopBegin())) {
                                 if (opaqueUnrolledStrides == null) {
                                     opaqueUnrolledStrides = EconomicMap.create(Equivalence.IDENTITY);
                                 }
@@ -91,7 +97,7 @@ public class LoopPartialUnrollPhase extends LoopPhase<LoopPolicies> {
                     listener.getNodes().clear();
                 }
 
-                assert !prePostInserted || checkCounted(graph, context.getLoopsDataProvider(), mark);
+                assert newMainLoops == null || checkCounted(graph, context.getLoopsDataProvider(), mark);
             }
         }
         if (opaqueUnrolledStrides != null) {
