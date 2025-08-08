@@ -37,6 +37,7 @@ import static com.oracle.svm.graal.hotspot.libgraal.truffle.HSTruffleCompilableG
 import static com.oracle.svm.graal.hotspot.libgraal.truffle.HSTruffleCompilableGen.callIsSameOrSplit;
 import static com.oracle.svm.graal.hotspot.libgraal.truffle.HSTruffleCompilableGen.callIsTrivial;
 import static com.oracle.svm.graal.hotspot.libgraal.truffle.HSTruffleCompilableGen.callOnCompilationFailed;
+import static com.oracle.svm.graal.hotspot.libgraal.truffle.HSTruffleCompilableGen.callOnCompilationSuccess;
 import static com.oracle.svm.graal.hotspot.libgraal.truffle.HSTruffleCompilableGen.callPrepareForCompilation;
 import static com.oracle.truffle.compiler.hotspot.libgraal.TruffleFromLibGraal.Id.AsJavaConstant;
 import static com.oracle.truffle.compiler.hotspot.libgraal.TruffleFromLibGraal.Id.CancelCompilation;
@@ -50,6 +51,7 @@ import static com.oracle.truffle.compiler.hotspot.libgraal.TruffleFromLibGraal.I
 import static com.oracle.truffle.compiler.hotspot.libgraal.TruffleFromLibGraal.Id.IsSameOrSplit;
 import static com.oracle.truffle.compiler.hotspot.libgraal.TruffleFromLibGraal.Id.IsTrivial;
 import static com.oracle.truffle.compiler.hotspot.libgraal.TruffleFromLibGraal.Id.OnCompilationFailed;
+import static com.oracle.truffle.compiler.hotspot.libgraal.TruffleFromLibGraal.Id.OnCompilationSuccess;
 import static org.graalvm.jniutils.JNIMethodScope.env;
 import static org.graalvm.jniutils.JNIUtil.createString;
 
@@ -171,6 +173,13 @@ final class HSTruffleCompilable extends HSObject implements TruffleCompilable {
                 LibGraalObjectHandles.remove(serializedExceptionHandle);
             }
         }
+    }
+
+    @TruffleFromLibGraal(OnCompilationSuccess)
+    @Override
+    public void onCompilationSuccess(int compilationTier, boolean lastTier) {
+        JNIEnv env = env();
+        callOnCompilationSuccess(calls, env, getHandle(), compilationTier, lastTier);
     }
 
     @TruffleFromLibGraal(GetCompilableName)
