@@ -27,6 +27,8 @@ package org.graalvm.compiler.nodes;
 import static org.graalvm.compiler.nodeinfo.NodeCycles.CYCLES_0;
 import static org.graalvm.compiler.nodeinfo.NodeSize.SIZE_0;
 
+import java.util.List;
+
 import org.graalvm.compiler.core.common.type.AbstractPointerStamp;
 import org.graalvm.compiler.core.common.type.ObjectStamp;
 import org.graalvm.compiler.core.common.type.Stamp;
@@ -45,6 +47,7 @@ import org.graalvm.compiler.nodes.spi.Canonicalizable;
 import org.graalvm.compiler.nodes.spi.CanonicalizerTool;
 import org.graalvm.compiler.nodes.spi.LIRLowerable;
 import org.graalvm.compiler.nodes.spi.NodeLIRBuilderTool;
+import org.graalvm.compiler.nodes.spi.SimplifierTool;
 import org.graalvm.compiler.nodes.spi.ValueProxy;
 import org.graalvm.compiler.nodes.spi.Virtualizable;
 import org.graalvm.compiler.nodes.spi.VirtualizerTool;
@@ -290,6 +293,68 @@ public class PiNode extends FloatingGuardedNode implements LIRLowerable, Virtual
             return object;
         }
         return this;
+    }
+
+    /**
+     * Perform Pi canonicalizations on any PiNodes anchored at {@code guard} in an attempt to
+     * eliminate all of them. This purely done to enable earlier elimination of the user of these
+     * PiNodes.
+     */
+    public static void tryEvacuate(SimplifierTool tool, GuardingNode guard) {
+        tryEvacuate(tool, guard, true);
+    }
+
+    private static void tryEvacuate(SimplifierTool tool, GuardingNode guard, boolean recurse) {
+        ValueNode guardNode = guard.asNode();
+        if (guardNode.hasNoUsages()) {
+            return;
+        }
+
+        List<PiNode> pis = guardNode.usages().filter(PiNode.class).snapshot();
+        for (PiNode pi : pis) {
+            if (!pi.isAlive()) {
+                continue;
+            }
+            if (pi.hasNoUsages()) {
+                pi.safeDelete();
+                continue;
+            }
+
+            /*
+             * RECURSE CALL
+             *
+             * If there are PiNodes still anchored at this guard then either they must simplify away
+             * because they are no longer necessary or this node must be replaced with a
+             * ValueAnchorNode because the type injected by the PiNode is only true at this point in
+             * the control flow.
+             */
+            if (recurse && pi.getOriginalNode() instanceof PiNode) {
+                // It's not uncommon for one extra level of PiNode to inhibit removal of
+                // this PiNode so try to simplify the input first.
+                GuardingNode otherGuard = ((PiNode) pi.getOriginalNode()).guard;
+                if (otherGuard != null) {
+                    tryEvacuate(tool, otherGuard, false);
+                }
+            }
+            /*
+             * A note on the RECURSE CALL above: When we have pis with input pis on the same guard
+             * (which should actually be combined) it can be that the recurse call (processing the
+             * same pis again) already deletes this node (very special stamp setups necessary).
+             * Thus, it can be that pi is dead at this point already, so we have to check for this
+             * again.
+             */
+            if (!pi.isAlive()) {
+                continue;
+            }
+            Node canonical = pi.canonical(tool);
+            if (canonical != pi) {
+                if (!canonical.isAlive()) {
+                    canonical = guardNode.graph().addOrUniqueWithInputs(canonical);
+                }
+                pi.replaceAtUsages(canonical);
+                pi.safeDelete();
+            }
+        }
     }
 
     @Override
