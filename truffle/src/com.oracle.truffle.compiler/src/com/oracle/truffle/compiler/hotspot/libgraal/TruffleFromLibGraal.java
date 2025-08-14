@@ -161,6 +161,8 @@ public @interface TruffleFromLibGraal {
         OnCodeInstallation,
         @Signature({void.class, Object.class, Supplier.class, boolean.class, boolean.class, boolean.class, boolean.class})
         OnCompilationFailed,
+        @Signature({void.class, Object.class, int.class, boolean.class})
+        OnCompilationSuccess,
         @Signature({void.class, Object.class, Object.class, Object.class})
         OnCompilationRetry,
         @Signature({void.class, Object.class, Object.class, String.class, boolean.class, boolean.class, int.class, long.class})
