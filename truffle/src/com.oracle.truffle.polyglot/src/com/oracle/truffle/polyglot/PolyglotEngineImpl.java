@@ -2346,4 +2346,19 @@ final class PolyglotEngineImpl implements com.oracle.truffle.polyglot.PolyglotIm
         return languageHomes;
     }
 
+    /**
+     * Logs a message when other logging mechanisms, such as {@link TruffleLogger} or the context's
+     * error stream, are unavailable. This can occur, for instance, in the event of a log handler
+     * failure.
+     * <p>
+     * On HotSpot, this method writes the message to {@code System.err}. When running on a native
+     * image, this method is substituted to delegate logging to the native image's
+     * {@link org.graalvm.nativeimage.LogHandler}.
+     *
+     * @param message the message to log
+     */
+    static void logFallback(String message) {
+        PrintStream err = System.err;
+        err.println(message);
+    }
 }
