@@ -72,6 +72,8 @@ public interface ReflectionConfigurationParserDelegate<T> {
 
     void registerUnsafeAllocated(ConfigurationCondition condition, T clazz);
 
+    void registerAsSerializable(ConfigurationCondition condition, T clazz);
+
     String getTypeName(T type);
 
     String getSimpleName(T type);

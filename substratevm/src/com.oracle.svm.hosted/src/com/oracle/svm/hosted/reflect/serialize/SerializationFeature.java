@@ -107,6 +107,7 @@ import jdk.vm.ci.meta.ResolvedJavaType;
 public class SerializationFeature implements InternalFeature {
     final Set<Class<?>> capturingClasses = ConcurrentHashMap.newKeySet();
     private SerializationBuilder serializationBuilder;
+    private SerializationDenyRegistry serializationDenyRegistry;
     private int loadedConfigurations;
 
     @Override
@@ -115,13 +116,23 @@ public class SerializationFeature implements InternalFeature {
     }
 
     @Override
+    public void afterRegistration(AfterRegistrationAccess a) {
+        FeatureImpl.AfterRegistrationAccessImpl access = (FeatureImpl.AfterRegistrationAccessImpl) a;
+        ImageClassLoader imageClassLoader = access.getImageClassLoader();
+        ConfigurationTypeResolver typeResolver = new ConfigurationTypeResolver("serialization configuration", imageClassLoader);
+        serializationDenyRegistry = new SerializationDenyRegistry(typeResolver);
+        serializationBuilder = new SerializationBuilder(serializationDenyRegistry, access, typeResolver, ImageSingletons.lookup(ProxyRegistry.class));
+        /*
+         * The serialization builder registration has to happen after registration so the
+         * ReflectionFeature can access it when creating parsers during setup.
+         */
+        ImageSingletons.add(RuntimeSerializationSupport.class, serializationBuilder);
+    }
+
+    @Override
     public void duringSetup(DuringSetupAccess a) {
         FeatureImpl.DuringSetupAccessImpl access = (FeatureImpl.DuringSetupAccessImpl) a;
         ImageClassLoader imageClassLoader = access.getImageClassLoader();
-        ConfigurationTypeResolver typeResolver = new ConfigurationTypeResolver("serialization configuration", imageClassLoader);
-        SerializationDenyRegistry serializationDenyRegistry = new SerializationDenyRegistry(typeResolver);
-        serializationBuilder = new SerializationBuilder(serializationDenyRegistry, access, typeResolver, ImageSingletons.lookup(ProxyRegistry.class));
-        ImageSingletons.add(RuntimeSerializationSupport.class, serializationBuilder);
 
         Boolean strictConfiguration = ConfigurationFiles.Options.StrictConfiguration.getValue();
 
@@ -347,13 +358,13 @@ final class SerializationBuilder extends ConditionalConfigurationRegistry implem
     final SerializationSupport serializationSupport;
     private final SerializationDenyRegistry denyRegistry;
     private final ConfigurationTypeResolver typeResolver;
-    private final FeatureImpl.DuringSetupAccessImpl access;
+    private final FeatureImpl.AfterRegistrationAccessImpl access;
     private final Method disableSerialConstructorChecks;
     private final Method superHasAccessibleConstructor;
     private boolean sealed;
     private final ProxyRegistry proxyRegistry;
 
-    SerializationBuilder(SerializationDenyRegistry serializationDenyRegistry, FeatureImpl.DuringSetupAccessImpl access, ConfigurationTypeResolver typeResolver, ProxyRegistry proxyRegistry) {
+    SerializationBuilder(SerializationDenyRegistry serializationDenyRegistry, FeatureImpl.AfterRegistrationAccessImpl access, ConfigurationTypeResolver typeResolver, ProxyRegistry proxyRegistry) {
         this.access = access;
         Class<?> classDataSlotClazz = access.findClassByName("java.io.ObjectStreamClass$ClassDataSlot");
         this.descField = ReflectionUtil.lookupField(classDataSlotClazz, "desc");
