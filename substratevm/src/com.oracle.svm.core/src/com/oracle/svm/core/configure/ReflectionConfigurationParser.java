@@ -31,10 +31,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.graalvm.collections.EconomicMap;
+import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.impl.ConfigurationCondition;
+import org.graalvm.nativeimage.impl.RuntimeSerializationSupport;
 import org.graalvm.util.json.JSONParserException;
 
 import com.oracle.svm.core.TypeResult;
+import com.oracle.svm.core.reflect.serialize.SerializationRegistry;
 import com.oracle.svm.util.LogUtils;
 
 /**

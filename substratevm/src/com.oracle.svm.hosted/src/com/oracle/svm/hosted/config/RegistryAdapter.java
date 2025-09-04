@@ -44,14 +44,15 @@ import com.oracle.svm.core.jdk.proxy.DynamicProxyRegistry;
 import com.oracle.svm.core.util.VMError;
 import com.oracle.svm.hosted.ImageClassLoader;
 import com.oracle.svm.util.ClassUtil;
+import org.graalvm.nativeimage.impl.RuntimeSerializationSupport;
 
 public class RegistryAdapter implements ReflectionConfigurationParserDelegate<Class<?>> {
     private final ReflectionRegistry registry;
     private final ImageClassLoader classLoader;
 
-    public static RegistryAdapter create(ReflectionRegistry registry, ImageClassLoader classLoader) {
+    public static RegistryAdapter create(ReflectionRegistry registry, RuntimeSerializationSupport serializationSupport, ImageClassLoader classLoader) {
         if (registry instanceof RuntimeReflectionSupport) {
-            return new ReflectionRegistryAdapter((RuntimeReflectionSupport) registry, classLoader);
+            return new ReflectionRegistryAdapter((RuntimeReflectionSupport) registry, serializationSupport, classLoader);
         } else {
             return new RegistryAdapter(registry, classLoader);
         }
@@ -233,6 +234,11 @@ public class RegistryAdapter implements ReflectionConfigurationParserDelegate<Cl
 
     private void registerExecutable(ConfigurationCondition condition, boolean queriedOnly, Executable... executable) {
         registry.register(condition, queriedOnly, executable);
+    }
+
+    @Override
+    public void registerAsSerializable(ConfigurationCondition condition, Class<?> clazz) {
+        /* Serializable has no effect on JNI registrations */
     }
 
     @Override

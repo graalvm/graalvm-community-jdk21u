@@ -34,6 +34,7 @@ import com.oracle.svm.core.TypeResult;
 import com.oracle.svm.core.configure.ConfigurationTypeDescriptor;
 import com.oracle.svm.core.configure.NamedConfigurationTypeDescriptor;
 import com.oracle.svm.core.configure.ReflectionConfigurationParserDelegate;
+import com.oracle.svm.core.util.UserError;
 
 public class ParserConfigurationAdapter implements ReflectionConfigurationParserDelegate<ConfigurationType> {
 
@@ -153,6 +154,12 @@ public class ParserConfigurationAdapter implements ReflectionConfigurationParser
     @Override
     public void registerDeclaredConstructors(ConfigurationCondition condition, boolean queriedOnly, ConfigurationType type) {
         type.setAllDeclaredConstructors(queriedOnly ? ConfigurationMemberAccessibility.QUERIED : ConfigurationMemberAccessibility.ACCESSED);
+    }
+
+    @Override
+    public void registerAsSerializable(ConfigurationCondition condition, ConfigurationType type) {
+        throw UserError.abort("The serializable field is not supported when reading reachability-metadata.json files on this version of GraalVM. " +
+                        "Please upgrade to the latest version.");
     }
 
     @Override

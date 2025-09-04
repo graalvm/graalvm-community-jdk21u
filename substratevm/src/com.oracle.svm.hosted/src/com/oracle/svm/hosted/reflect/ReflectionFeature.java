@@ -91,6 +91,7 @@ import jdk.internal.reflect.Reflection;
 import jdk.vm.ci.meta.JavaKind;
 import jdk.vm.ci.meta.ResolvedJavaField;
 import jdk.vm.ci.meta.ResolvedJavaMethod;
+import org.graalvm.nativeimage.impl.RuntimeSerializationSupport;
 
 @AutomaticallyRegisteredFeature
 public class ReflectionFeature implements InternalFeature, ReflectionSubstitutionSupport {
@@ -261,11 +262,12 @@ public class ReflectionFeature implements InternalFeature, ReflectionSubstitutio
         DuringSetupAccessImpl access = (DuringSetupAccessImpl) a;
         aUniverse = access.getUniverse();
         reflectionData.duringSetup(access.getMetaAccess(), aUniverse);
+        RuntimeSerializationSupport serializationSupport = ImageSingletons.lookup(RuntimeSerializationSupport.class);
 
-        ReflectionConfigurationParser<Class<?>> parser = ConfigurationParserUtils.create(REFLECTION_KEY, true, reflectionData,
+        ReflectionConfigurationParser<Class<?>> parser = ConfigurationParserUtils.create(REFLECTION_KEY, true, reflectionData, serializationSupport,
                         access.getImageClassLoader());
         loadedConfigurations = ConfigurationParserUtils.parseAndRegisterConfigurationsFromCombinedFile(parser, access.getImageClassLoader(), "reflection");
-        ReflectionConfigurationParser<Class<?>> legacyParser = ConfigurationParserUtils.create(null, false, reflectionData,
+        ReflectionConfigurationParser<Class<?>> legacyParser = ConfigurationParserUtils.create(null, false, reflectionData, serializationSupport,
                         access.getImageClassLoader());
         loadedConfigurations += ConfigurationParserUtils.parseAndRegisterConfigurations(legacyParser, access.getImageClassLoader(), "reflection",
                         ConfigurationFiles.Options.ReflectionConfigurationFiles, ConfigurationFiles.Options.ReflectionConfigurationResources, ConfigurationFile.REFLECTION.getFileName());

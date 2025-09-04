@@ -35,13 +35,16 @@ import com.oracle.svm.core.TypeResult;
 import com.oracle.svm.core.configure.ConfigurationTypeDescriptor;
 import com.oracle.svm.hosted.ImageClassLoader;
 import com.oracle.svm.hosted.reflect.ReflectionDataBuilder;
+import org.graalvm.nativeimage.impl.RuntimeSerializationSupport;
 
 public class ReflectionRegistryAdapter extends RegistryAdapter {
     private final RuntimeReflectionSupport reflectionSupport;
+    private final RuntimeSerializationSupport serializationSupport;
 
-    ReflectionRegistryAdapter(RuntimeReflectionSupport reflectionSupport, ImageClassLoader classLoader) {
+    ReflectionRegistryAdapter(RuntimeReflectionSupport reflectionSupport, RuntimeSerializationSupport serializationSupport, ImageClassLoader classLoader) {
         super(reflectionSupport, classLoader);
         this.reflectionSupport = reflectionSupport;
+        this.serializationSupport = serializationSupport;
     }
 
     @Override
@@ -155,5 +158,10 @@ public class ReflectionRegistryAdapter extends RegistryAdapter {
                 throw e;
             }
         }
+    }
+
+    @Override
+    public void registerAsSerializable(ConfigurationCondition condition, Class<?> clazz) {
+        serializationSupport.register(condition, clazz);
     }
 }
