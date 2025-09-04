@@ -156,6 +156,12 @@ public class ParserConfigurationAdapter implements ReflectionConfigurationParser
     }
 
     @Override
+    public void registerAsSerializable(ConfigurationCondition condition, ConfigurationType type) {
+        throw new IllegalArgumentException("The serializable field is not supported when reading reachability-metadata.json files on this version of GraalVM. " +
+                        "Please upgrade to the latest version.");
+    }
+
+    @Override
     public String getTypeName(ConfigurationType type) {
         return type.getQualifiedJavaName();
     }
