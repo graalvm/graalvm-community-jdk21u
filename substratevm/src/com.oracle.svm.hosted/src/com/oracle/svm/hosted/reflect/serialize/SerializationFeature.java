@@ -492,15 +492,7 @@ final class SerializationBuilder extends ConditionalConfigurationRegistry implem
             return;
         }
 
-        if (customTargetConstructorClassName != null) {
-            Class<?> customTargetConstructorClass = typeResolver.resolveType(customTargetConstructorClassName);
-            if (customTargetConstructorClass == null) {
-                return;
-            }
-            registerWithTargetConstructorClass(condition, serializationTargetClass, customTargetConstructorClass);
-        } else {
-            registerWithTargetConstructorClass(condition, serializationTargetClass, null);
-        }
+        registerWithTargetConstructorClass(condition, serializationTargetClass, null);
     }
 
     @Override
@@ -522,20 +514,8 @@ final class SerializationBuilder extends ConditionalConfigurationRegistry implem
         }
 
         if (denyRegistry.isAllowed(serializationTargetClass)) {
-            if (customTargetConstructorClass != null) {
-                if (!customTargetConstructorClass.isAssignableFrom(serializationTargetClass)) {
-                    LogUtils.warning("The given customTargetConstructorClass %s is not a superclass of the serialization target %s.", customTargetConstructorClass.getName(), serializationTargetClass);
-                    return;
-                }
-                if (ReflectionUtil.lookupConstructor(true, customTargetConstructorClass) == null) {
-                    LogUtils.warning("The given customTargetConstructorClass %s does not declare a parameterless constructor.", customTargetConstructorClass.getName());
-                    return;
-                }
-            }
             registerConditionalConfiguration(condition, () -> {
-                Optional.ofNullable(addConstructorAccessor(serializationTargetClass, customTargetConstructorClass))
-                                .map(ReflectionUtil::lookupConstructor)
-                                .ifPresent(RuntimeReflection::register);
+                registerConstructorAccessors(serializationTargetClass);
 
                 Class<?> superclass = serializationTargetClass.getSuperclass();
                 if (superclass != null) {
@@ -548,6 +528,20 @@ final class SerializationBuilder extends ConditionalConfigurationRegistry implem
                 registerForDeserialization(serializationTargetClass);
             });
         }
+    }
+
+    private void registerConstructorAccessors(Class<?> serializationTargetClass) {
+        serializationSupport.registerSerializationTargetClass(serializationTargetClass);
+        registerConstructorAccessor(serializationTargetClass, null);
+        for (Class<?> superclass = serializationTargetClass; superclass != null; superclass = superclass.getSuperclass()) {
+            registerConstructorAccessor(serializationTargetClass, superclass);
+        }
+    }
+
+    private void registerConstructorAccessor(Class<?> serializationTargetClass, Class<?> customTargetConstructorClass) {
+        Optional.ofNullable(addConstructorAccessor(serializationTargetClass, customTargetConstructorClass))
+                        .map(ReflectionUtil::lookupConstructor)
+                        .ifPresent(RuntimeReflection::register);
     }
 
     private static void registerQueriesForInheritableMethod(Class<?> clazz, String methodName, Class<?>... args) {
@@ -709,13 +703,17 @@ final class SerializationBuilder extends ConditionalConfigurationRegistry implem
         if (Modifier.isAbstract(serializationTargetClass.getModifiers())) {
             targetConstructor = stubConstructor;
         } else {
-            if (customTargetConstructorClass == serializationTargetClass) {
-                /* No custom constructor needed. Simply use existing no-arg constructor. */
-                return customTargetConstructorClass;
-            }
             Constructor<?> customConstructorToCall = null;
             if (customTargetConstructorClass != null) {
-                customConstructorToCall = ReflectionUtil.lookupConstructor(customTargetConstructorClass);
+                customConstructorToCall = ReflectionUtil.lookupConstructor(true, customTargetConstructorClass);
+                if (customConstructorToCall == null) {
+                    /* No suitable constructor, no need to register */
+                    return null;
+                }
+                if (customTargetConstructorClass == serializationTargetClass) {
+                    /* No custom constructor needed. Simply use existing no-arg constructor. */
+                    return customTargetConstructorClass;
+                }
             }
             targetConstructor = newConstructorForSerialization(serializationTargetClass, customConstructorToCall);
 
