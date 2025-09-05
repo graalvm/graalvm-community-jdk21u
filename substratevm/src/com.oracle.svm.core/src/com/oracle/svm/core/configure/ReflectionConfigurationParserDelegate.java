@@ -48,31 +48,33 @@ public interface ReflectionConfigurationParserDelegate<T> {
 
     void registerSigners(ConfigurationCondition condition, T type);
 
-    void registerPublicFields(ConfigurationCondition condition, boolean queriedOnly, T type);
+    void registerPublicFields(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, T type);
 
-    void registerDeclaredFields(ConfigurationCondition condition, boolean queriedOnly, T type);
+    void registerDeclaredFields(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, T type);
 
-    void registerPublicMethods(ConfigurationCondition condition, boolean queriedOnly, T type);
+    void registerPublicMethods(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, T type);
 
-    void registerDeclaredMethods(ConfigurationCondition condition, boolean queriedOnly, T type);
+    void registerDeclaredMethods(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, T type);
 
-    void registerPublicConstructors(ConfigurationCondition condition, boolean queriedOnly, T type);
+    void registerPublicConstructors(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, T type);
 
-    void registerDeclaredConstructors(ConfigurationCondition condition, boolean queriedOnly, T type);
+    void registerDeclaredConstructors(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, T type);
 
-    void registerField(ConfigurationCondition condition, T type, String fieldName, boolean allowWrite) throws NoSuchFieldException;
+    void registerField(ConfigurationCondition condition, T type, String fieldName, boolean allowWrite, boolean jniAccessible) throws NoSuchFieldException;
 
-    boolean registerAllMethodsWithName(ConfigurationCondition condition, boolean queriedOnly, T type, String methodName);
+    boolean registerAllMethodsWithName(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, T type, String methodName);
 
-    void registerMethod(ConfigurationCondition condition, boolean queriedOnly, T type, String methodName, List<T> methodParameterTypes) throws NoSuchMethodException;
+    void registerMethod(ConfigurationCondition condition, boolean queriedOnly, T type, String methodName, List<T> methodParameterTypes, boolean jniAccessible) throws NoSuchMethodException;
 
-    void registerConstructor(ConfigurationCondition condition, boolean queriedOnly, T type, List<T> methodParameterTypes) throws NoSuchMethodException;
+    void registerConstructor(ConfigurationCondition condition, boolean queriedOnly, T type, List<T> methodParameterTypes, boolean jniAccessible) throws NoSuchMethodException;
 
-    boolean registerAllConstructors(ConfigurationCondition condition, boolean queriedOnly, T type);
+    boolean registerAllConstructors(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, T type);
 
     void registerUnsafeAllocated(ConfigurationCondition condition, T clazz);
 
     void registerAsSerializable(ConfigurationCondition condition, T clazz);
+
+    void registerAsJniAccessed(ConfigurationCondition condition, T clazz);
 
     String getTypeName(T type);
 
