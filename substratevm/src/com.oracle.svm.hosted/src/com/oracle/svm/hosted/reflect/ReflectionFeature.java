@@ -46,7 +46,9 @@ import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.c.function.CFunctionPointer;
 import org.graalvm.nativeimage.hosted.RuntimeReflection;
 import org.graalvm.nativeimage.impl.AnnotationExtractor;
+import org.graalvm.nativeimage.impl.RuntimeJNIAccessSupport;
 import org.graalvm.nativeimage.impl.RuntimeReflectionSupport;
+import org.graalvm.nativeimage.impl.RuntimeSerializationSupport;
 
 import com.oracle.graal.pointsto.infrastructure.UniverseMetaAccess;
 import com.oracle.graal.pointsto.meta.AnalysisMethod;
@@ -91,7 +93,6 @@ import jdk.internal.reflect.Reflection;
 import jdk.vm.ci.meta.JavaKind;
 import jdk.vm.ci.meta.ResolvedJavaField;
 import jdk.vm.ci.meta.ResolvedJavaMethod;
-import org.graalvm.nativeimage.impl.RuntimeSerializationSupport;
 
 @AutomaticallyRegisteredFeature
 public class ReflectionFeature implements InternalFeature, ReflectionSubstitutionSupport {
@@ -263,11 +264,12 @@ public class ReflectionFeature implements InternalFeature, ReflectionSubstitutio
         aUniverse = access.getUniverse();
         reflectionData.duringSetup(access.getMetaAccess(), aUniverse);
         RuntimeSerializationSupport serializationSupport = ImageSingletons.lookup(RuntimeSerializationSupport.class);
+        RuntimeJNIAccessSupport jniSupport = ImageSingletons.lookup(RuntimeJNIAccessSupport.class);
 
-        ReflectionConfigurationParser<Class<?>> parser = ConfigurationParserUtils.create(REFLECTION_KEY, true, reflectionData, serializationSupport,
+        ReflectionConfigurationParser<Class<?>> parser = ConfigurationParserUtils.create(REFLECTION_KEY, true, reflectionData, serializationSupport, jniSupport,
                         access.getImageClassLoader());
         loadedConfigurations = ConfigurationParserUtils.parseAndRegisterConfigurationsFromCombinedFile(parser, access.getImageClassLoader(), "reflection");
-        ReflectionConfigurationParser<Class<?>> legacyParser = ConfigurationParserUtils.create(null, false, reflectionData, serializationSupport,
+        ReflectionConfigurationParser<Class<?>> legacyParser = ConfigurationParserUtils.create(REFLECTION_KEY, false, reflectionData, serializationSupport, jniSupport,
                         access.getImageClassLoader());
         loadedConfigurations += ConfigurationParserUtils.parseAndRegisterConfigurations(legacyParser, access.getImageClassLoader(), "reflection",
                         ConfigurationFiles.Options.ReflectionConfigurationFiles, ConfigurationFiles.Options.ReflectionConfigurationResources, ConfigurationFile.REFLECTION.getFileName());
