@@ -25,6 +25,7 @@
 package com.oracle.svm.hosted.config;
 
 import java.lang.reflect.Executable;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -33,7 +34,9 @@ import java.util.List;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.impl.ConfigurationCondition;
 import org.graalvm.nativeimage.impl.ReflectionRegistry;
+import org.graalvm.nativeimage.impl.RuntimeJNIAccessSupport;
 import org.graalvm.nativeimage.impl.RuntimeReflectionSupport;
+import org.graalvm.nativeimage.impl.RuntimeSerializationSupport;
 
 import com.oracle.svm.core.TypeResult;
 import com.oracle.svm.core.configure.ConfigurationTypeDescriptor;
@@ -44,15 +47,16 @@ import com.oracle.svm.core.jdk.proxy.DynamicProxyRegistry;
 import com.oracle.svm.core.util.VMError;
 import com.oracle.svm.hosted.ImageClassLoader;
 import com.oracle.svm.util.ClassUtil;
-import org.graalvm.nativeimage.impl.RuntimeSerializationSupport;
 
 public class RegistryAdapter implements ReflectionConfigurationParserDelegate<Class<?>> {
-    private final ReflectionRegistry registry;
+    protected final ReflectionRegistry registry;
     private final ImageClassLoader classLoader;
 
-    public static RegistryAdapter create(ReflectionRegistry registry, RuntimeSerializationSupport serializationSupport, ImageClassLoader classLoader) {
+    public static RegistryAdapter create(ReflectionRegistry registry, RuntimeSerializationSupport serializationSupport, RuntimeJNIAccessSupport jniSupport, ImageClassLoader classLoader) {
         if (registry instanceof RuntimeReflectionSupport) {
-            return new ReflectionRegistryAdapter((RuntimeReflectionSupport) registry, serializationSupport, classLoader);
+            return new ReflectionRegistryAdapter((RuntimeReflectionSupport) registry, serializationSupport, jniSupport, classLoader);
+        } else if (registry instanceof RuntimeJNIAccessSupport) {
+            return new JNIRegistryAdapter(registry, classLoader);
         } else {
             return new RegistryAdapter(registry, classLoader);
         }
@@ -108,12 +112,10 @@ public class RegistryAdapter implements ReflectionConfigurationParserDelegate<Cl
 
     @Override
     public void registerPublicClasses(ConfigurationCondition condition, Class<?> type) {
-        registry.register(condition, type.getClasses());
     }
 
     @Override
     public void registerDeclaredClasses(ConfigurationCondition condition, Class<?> type) {
-        registry.register(condition, type.getDeclaredClasses());
     }
 
     @Override
@@ -133,47 +135,52 @@ public class RegistryAdapter implements ReflectionConfigurationParserDelegate<Cl
     }
 
     @Override
-    public void registerPublicFields(ConfigurationCondition condition, boolean queriedOnly, Class<?> type) {
+    public void registerPublicFields(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, Class<?> type) {
         registry.register(condition, false, type.getFields());
     }
 
     @Override
-    public void registerDeclaredFields(ConfigurationCondition condition, boolean queriedOnly, Class<?> type) {
+    public void registerDeclaredFields(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, Class<?> type) {
         registry.register(condition, false, type.getDeclaredFields());
     }
 
     @Override
-    public void registerPublicMethods(ConfigurationCondition condition, boolean queriedOnly, Class<?> type) {
+    public void registerPublicMethods(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, Class<?> type) {
         registry.register(condition, queriedOnly, type.getMethods());
     }
 
     @Override
-    public void registerDeclaredMethods(ConfigurationCondition condition, boolean queriedOnly, Class<?> type) {
+    public void registerDeclaredMethods(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, Class<?> type) {
         registry.register(condition, queriedOnly, type.getDeclaredMethods());
     }
 
     @Override
-    public void registerPublicConstructors(ConfigurationCondition condition, boolean queriedOnly, Class<?> type) {
+    public void registerPublicConstructors(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, Class<?> type) {
         registry.register(condition, queriedOnly, type.getConstructors());
     }
 
     @Override
-    public void registerDeclaredConstructors(ConfigurationCondition condition, boolean queriedOnly, Class<?> type) {
+    public void registerDeclaredConstructors(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, Class<?> type) {
         registry.register(condition, queriedOnly, type.getDeclaredConstructors());
     }
 
     @Override
-    public void registerField(ConfigurationCondition condition, Class<?> type, String fieldName, boolean allowWrite) throws NoSuchFieldException {
-        registry.register(condition, allowWrite, type.getDeclaredField(fieldName));
+    public void registerField(ConfigurationCondition condition, Class<?> type, String fieldName, boolean allowWrite, boolean jniAccessible) throws NoSuchFieldException {
+        registerField(condition, allowWrite, jniAccessible, type.getDeclaredField(fieldName));
+    }
+
+    @SuppressWarnings("unused")
+    protected void registerField(ConfigurationCondition condition, boolean allowWrite, boolean jniAccessible, Field field) {
+        registry.register(condition, allowWrite, field);
     }
 
     @Override
-    public boolean registerAllMethodsWithName(ConfigurationCondition condition, boolean queriedOnly, Class<?> type, String methodName) {
+    public boolean registerAllMethodsWithName(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, Class<?> type, String methodName) {
         boolean found = false;
         Executable[] methods = type.getDeclaredMethods();
         for (Executable method : methods) {
             if (method.getName().equals(methodName)) {
-                registerExecutable(condition, queriedOnly, method);
+                registerExecutable(condition, queriedOnly, jniAccessible, method);
                 found = true;
             }
         }
@@ -181,9 +188,9 @@ public class RegistryAdapter implements ReflectionConfigurationParserDelegate<Cl
     }
 
     @Override
-    public boolean registerAllConstructors(ConfigurationCondition condition, boolean queriedOnly, Class<?> type) {
+    public boolean registerAllConstructors(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, Class<?> type) {
         Executable[] methods = type.getDeclaredConstructors();
-        registerExecutable(condition, queriedOnly, methods);
+        registerExecutable(condition, queriedOnly, jniAccessible, methods);
         return methods.length > 0;
     }
 
@@ -199,7 +206,8 @@ public class RegistryAdapter implements ReflectionConfigurationParserDelegate<Cl
     }
 
     @Override
-    public void registerMethod(ConfigurationCondition condition, boolean queriedOnly, Class<?> type, String methodName, List<Class<?>> methodParameterTypes) throws NoSuchMethodException {
+    public void registerMethod(ConfigurationCondition condition, boolean queriedOnly, Class<?> type, String methodName, List<Class<?>> methodParameterTypes, boolean jniAccessible)
+                    throws NoSuchMethodException {
         Class<?>[] parameterTypesArray = getParameterTypes(methodParameterTypes);
         Method method;
         try {
@@ -219,26 +227,31 @@ public class RegistryAdapter implements ReflectionConfigurationParserDelegate<Cl
                 throw e;
             }
         }
-        registerExecutable(condition, queriedOnly, method);
+        registerExecutable(condition, queriedOnly, jniAccessible, method);
     }
 
     @Override
-    public void registerConstructor(ConfigurationCondition condition, boolean queriedOnly, Class<?> type, List<Class<?>> methodParameterTypes) throws NoSuchMethodException {
+    public void registerConstructor(ConfigurationCondition condition, boolean queriedOnly, Class<?> type, List<Class<?>> methodParameterTypes, boolean jniAccessible)
+                    throws NoSuchMethodException {
         Class<?>[] parameterTypesArray = getParameterTypes(methodParameterTypes);
-        registerExecutable(condition, queriedOnly, type.getDeclaredConstructor(parameterTypesArray));
+        registerExecutable(condition, queriedOnly, jniAccessible, type.getDeclaredConstructor(parameterTypesArray));
     }
 
     static Class<?>[] getParameterTypes(List<Class<?>> methodParameterTypes) {
         return methodParameterTypes.toArray(Class<?>[]::new);
     }
 
-    private void registerExecutable(ConfigurationCondition condition, boolean queriedOnly, Executable... executable) {
+    @SuppressWarnings("unused")
+    protected void registerExecutable(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, Executable... executable) {
         registry.register(condition, queriedOnly, executable);
     }
 
     @Override
     public void registerAsSerializable(ConfigurationCondition condition, Class<?> clazz) {
-        /* Serializable has no effect on JNI registrations */
+    }
+
+    @Override
+    public void registerAsJniAccessed(ConfigurationCondition condition, Class<?> clazz) {
     }
 
     @Override

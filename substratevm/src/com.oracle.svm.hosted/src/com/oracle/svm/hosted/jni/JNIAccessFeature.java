@@ -97,6 +97,7 @@ import com.oracle.svm.hosted.meta.HostedType;
 import com.oracle.svm.hosted.meta.HostedUniverse;
 import com.oracle.svm.hosted.meta.KnownOffsetsFeature;
 import com.oracle.svm.hosted.meta.MaterializedConstantFields;
+import com.oracle.svm.hosted.reflect.ReflectionFeature;
 import com.oracle.svm.hosted.substitute.SubstitutionReflectivityFilter;
 import com.oracle.svm.util.ReflectionUtil;
 
@@ -181,7 +182,7 @@ public class JNIAccessFeature implements Feature {
     @Override
     public List<Class<? extends Feature>> getRequiredFeatures() {
         // Ensure that KnownOffsets is fully initialized before we access it
-        return List.of(KnownOffsetsFeature.class);
+        return List.of(KnownOffsetsFeature.class, ReflectionFeature.class);
     }
 
     @Override
@@ -193,10 +194,10 @@ public class JNIAccessFeature implements Feature {
         runtimeSupport = new JNIRuntimeAccessibilitySupportImpl();
         ImageSingletons.add(RuntimeJNIAccessSupport.class, runtimeSupport);
 
-        ReflectionConfigurationParser<Class<?>> parser = ConfigurationParserUtils.create(JNI_KEY, true, runtimeSupport, null,
+        ReflectionConfigurationParser<Class<?>> parser = ConfigurationParserUtils.create(JNI_KEY, true, runtimeSupport, null, null,
                         access.getImageClassLoader());
         loadedConfigurations = ConfigurationParserUtils.parseAndRegisterConfigurationsFromCombinedFile(parser, access.getImageClassLoader(), "JNI");
-        ReflectionConfigurationParser<Class<?>> legacyParser = ConfigurationParserUtils.create(null, false, runtimeSupport, null,
+        ReflectionConfigurationParser<Class<?>> legacyParser = ConfigurationParserUtils.create(JNI_KEY, false, runtimeSupport, null, null,
                         access.getImageClassLoader());
         loadedConfigurations += ConfigurationParserUtils.parseAndRegisterConfigurations(legacyParser, access.getImageClassLoader(), "JNI", ConfigurationFiles.Options.JNIConfigurationFiles,
                         ConfigurationFiles.Options.JNIConfigurationResources, ConfigurationFile.JNI.getFileName());

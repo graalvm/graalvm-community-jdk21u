@@ -61,18 +61,18 @@ public class ParserConfigurationAdapter implements ReflectionConfigurationParser
     }
 
     @Override
-    public void registerField(ConfigurationCondition condition, ConfigurationType type, String fieldName, boolean finalButWritable) {
+    public void registerField(ConfigurationCondition condition, ConfigurationType type, String fieldName, boolean finalButWritable, boolean jniAccessible) {
         type.addField(fieldName, ConfigurationMemberDeclaration.PRESENT, finalButWritable);
     }
 
     @Override
-    public boolean registerAllMethodsWithName(ConfigurationCondition condition, boolean queriedOnly, ConfigurationType type, String methodName) {
+    public boolean registerAllMethodsWithName(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, ConfigurationType type, String methodName) {
         type.addMethodsWithName(methodName, ConfigurationMemberDeclaration.PRESENT, queriedOnly ? ConfigurationMemberAccessibility.QUERIED : ConfigurationMemberAccessibility.ACCESSED);
         return true;
     }
 
     @Override
-    public boolean registerAllConstructors(ConfigurationCondition condition, boolean queriedOnly, ConfigurationType type) {
+    public boolean registerAllConstructors(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, ConfigurationType type) {
         type.addMethodsWithName(ConfigurationMethod.CONSTRUCTOR_NAME, ConfigurationMemberDeclaration.PRESENT,
                         queriedOnly ? ConfigurationMemberAccessibility.QUERIED : ConfigurationMemberAccessibility.ACCESSED);
         return true;
@@ -84,13 +84,13 @@ public class ParserConfigurationAdapter implements ReflectionConfigurationParser
     }
 
     @Override
-    public void registerMethod(ConfigurationCondition condition, boolean queriedOnly, ConfigurationType type, String methodName, List<ConfigurationType> methodParameterTypes) {
+    public void registerMethod(ConfigurationCondition condition, boolean queriedOnly, ConfigurationType type, String methodName, List<ConfigurationType> methodParameterTypes, boolean jniAccessible) {
         type.addMethod(methodName, ConfigurationMethod.toInternalParamsSignature(methodParameterTypes), ConfigurationMemberDeclaration.PRESENT,
                         queriedOnly ? ConfigurationMemberAccessibility.QUERIED : ConfigurationMemberAccessibility.ACCESSED);
     }
 
     @Override
-    public void registerConstructor(ConfigurationCondition condition, boolean queriedOnly, ConfigurationType type, List<ConfigurationType> methodParameterTypes) {
+    public void registerConstructor(ConfigurationCondition condition, boolean queriedOnly, ConfigurationType type, List<ConfigurationType> methodParameterTypes, boolean jniAccessible) {
         type.addMethod(ConfigurationMethod.CONSTRUCTOR_NAME, ConfigurationMethod.toInternalParamsSignature(methodParameterTypes), ConfigurationMemberDeclaration.PRESENT,
                         queriedOnly ? ConfigurationMemberAccessibility.QUERIED : ConfigurationMemberAccessibility.ACCESSED);
     }
@@ -126,38 +126,44 @@ public class ParserConfigurationAdapter implements ReflectionConfigurationParser
     }
 
     @Override
-    public void registerPublicFields(ConfigurationCondition condition, boolean queriedOnly, ConfigurationType type) {
+    public void registerPublicFields(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, ConfigurationType type) {
         type.setAllPublicFields();
     }
 
     @Override
-    public void registerDeclaredFields(ConfigurationCondition condition, boolean queriedOnly, ConfigurationType type) {
+    public void registerDeclaredFields(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, ConfigurationType type) {
         type.setAllDeclaredFields();
     }
 
     @Override
-    public void registerPublicMethods(ConfigurationCondition condition, boolean queriedOnly, ConfigurationType type) {
+    public void registerPublicMethods(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, ConfigurationType type) {
         type.setAllPublicMethods(queriedOnly ? ConfigurationMemberAccessibility.QUERIED : ConfigurationMemberAccessibility.ACCESSED);
     }
 
     @Override
-    public void registerDeclaredMethods(ConfigurationCondition condition, boolean queriedOnly, ConfigurationType type) {
+    public void registerDeclaredMethods(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, ConfigurationType type) {
         type.setAllDeclaredMethods(queriedOnly ? ConfigurationMemberAccessibility.QUERIED : ConfigurationMemberAccessibility.ACCESSED);
     }
 
     @Override
-    public void registerPublicConstructors(ConfigurationCondition condition, boolean queriedOnly, ConfigurationType type) {
+    public void registerPublicConstructors(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, ConfigurationType type) {
         type.setAllPublicConstructors(queriedOnly ? ConfigurationMemberAccessibility.QUERIED : ConfigurationMemberAccessibility.ACCESSED);
     }
 
     @Override
-    public void registerDeclaredConstructors(ConfigurationCondition condition, boolean queriedOnly, ConfigurationType type) {
+    public void registerDeclaredConstructors(ConfigurationCondition condition, boolean queriedOnly, boolean jniAccessible, ConfigurationType type) {
         type.setAllDeclaredConstructors(queriedOnly ? ConfigurationMemberAccessibility.QUERIED : ConfigurationMemberAccessibility.ACCESSED);
     }
 
     @Override
     public void registerAsSerializable(ConfigurationCondition condition, ConfigurationType type) {
         throw new IllegalArgumentException("The serializable field is not supported when reading reachability-metadata.json files on this version of GraalVM. " +
+                        "Please upgrade to the latest version.");
+    }
+
+    @Override
+    public void registerAsJniAccessed(ConfigurationCondition condition, ConfigurationType type) {
+        throw new IllegalArgumentException("The jniAccessible field is not supported when reading reachability-metadata.json files on this version of GraalVM. " +
                         "Please upgrade to the latest version.");
     }
 
