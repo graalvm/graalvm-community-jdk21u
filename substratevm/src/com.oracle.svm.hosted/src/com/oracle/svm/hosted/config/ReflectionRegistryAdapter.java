@@ -28,10 +28,12 @@ import static com.oracle.svm.core.MissingRegistrationUtils.throwMissingRegistrat
 
 import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
+import java.lang.reflect.Proxy;
 import java.util.List;
 
 import org.graalvm.nativeimage.impl.ConfigurationCondition;
 import org.graalvm.nativeimage.impl.RuntimeJNIAccessSupport;
+import org.graalvm.nativeimage.impl.RuntimeProxyCreationSupport;
 import org.graalvm.nativeimage.impl.RuntimeReflectionSupport;
 import org.graalvm.nativeimage.impl.RuntimeSerializationSupport;
 
@@ -42,12 +44,15 @@ import com.oracle.svm.hosted.reflect.ReflectionDataBuilder;
 
 public class ReflectionRegistryAdapter extends RegistryAdapter {
     private final RuntimeReflectionSupport reflectionSupport;
+    private final RuntimeProxyCreationSupport proxySupport;
     private final RuntimeSerializationSupport serializationSupport;
     private final RuntimeJNIAccessSupport jniSupport;
 
-    ReflectionRegistryAdapter(RuntimeReflectionSupport reflectionSupport, RuntimeSerializationSupport serializationSupport, RuntimeJNIAccessSupport jniSupport, ImageClassLoader classLoader) {
+    ReflectionRegistryAdapter(RuntimeReflectionSupport reflectionSupport, RuntimeProxyCreationSupport proxySupport, RuntimeSerializationSupport serializationSupport,
+                    RuntimeJNIAccessSupport jniSupport, ImageClassLoader classLoader) {
         super(reflectionSupport, classLoader);
         this.reflectionSupport = reflectionSupport;
+        this.proxySupport = proxySupport;
         this.serializationSupport = serializationSupport;
         this.jniSupport = jniSupport;
     }
@@ -64,6 +69,14 @@ public class ReflectionRegistryAdapter extends RegistryAdapter {
             }
         }
         return result;
+    }
+
+    @Override
+    public void registerType(ConfigurationCondition condition, Class<?> type) {
+        super.registerType(condition, type);
+        if (Proxy.isProxyClass(type)) {
+            proxySupport.addProxyClass(type.getInterfaces());
+        }
     }
 
     @Override
