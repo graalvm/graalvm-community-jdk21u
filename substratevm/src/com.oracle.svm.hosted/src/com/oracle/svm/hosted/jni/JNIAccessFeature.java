@@ -194,10 +194,10 @@ public class JNIAccessFeature implements Feature {
         runtimeSupport = new JNIRuntimeAccessibilitySupportImpl();
         ImageSingletons.add(RuntimeJNIAccessSupport.class, runtimeSupport);
 
-        ReflectionConfigurationParser<Class<?>> parser = ConfigurationParserUtils.create(JNI_KEY, true, runtimeSupport, null, null,
+        ReflectionConfigurationParser<Class<?>> parser = ConfigurationParserUtils.create(JNI_KEY, true, runtimeSupport, null, null, null,
                         access.getImageClassLoader());
         loadedConfigurations = ConfigurationParserUtils.parseAndRegisterConfigurationsFromCombinedFile(parser, access.getImageClassLoader(), "JNI");
-        ReflectionConfigurationParser<Class<?>> legacyParser = ConfigurationParserUtils.create(JNI_KEY, false, runtimeSupport, null, null,
+        ReflectionConfigurationParser<Class<?>> legacyParser = ConfigurationParserUtils.create(JNI_KEY, false, runtimeSupport, null, null, null,
                         access.getImageClassLoader());
         loadedConfigurations += ConfigurationParserUtils.parseAndRegisterConfigurations(legacyParser, access.getImageClassLoader(), "JNI", ConfigurationFiles.Options.JNIConfigurationFiles,
                         ConfigurationFiles.Options.JNIConfigurationResources, ConfigurationFile.JNI.getFileName());
