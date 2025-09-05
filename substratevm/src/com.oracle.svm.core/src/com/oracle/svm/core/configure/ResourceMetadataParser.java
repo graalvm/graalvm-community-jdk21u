@@ -25,6 +25,7 @@
 package com.oracle.svm.core.configure;
 
 import java.net.URI;
+import java.util.List;
 
 import org.graalvm.collections.EconomicMap;
 import org.graalvm.nativeimage.impl.ConfigurationCondition;
@@ -38,7 +39,15 @@ final class ResourceMetadataParser extends ResourceConfigurationParser {
     public void parseAndRegister(Object json, URI origin) {
         Object resourcesJson = getFromGlobalFile(json, RESOURCES_KEY);
         if (resourcesJson != null) {
-            parseGlobsObject(resourcesJson);
+            List<Object> globsAndBundles = asList(resourcesJson, "'resources' section must be a list of glob pattern or bundle descriptors");
+            for (Object object : globsAndBundles) {
+                EconomicMap<String, Object> globOrBundle = asMap(object, "Elements of 'resources' list must be glob pattern or bundle descriptor objects");
+                if (globOrBundle.containsKey(GLOB_KEY)) {
+                    parseGlobEntry(object, (condition, module, resource) -> registry.addResources(condition, globToRegex(module, resource)));
+                } else if (globOrBundle.containsKey(BUNDLE_KEY)) {
+                    parseBundle(globOrBundle, true);
+                }
+            }
         }
         Object bundlesJson = getFromGlobalFile(json, BUNDLES_KEY);
         if (bundlesJson != null) {
