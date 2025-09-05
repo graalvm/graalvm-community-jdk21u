@@ -35,6 +35,7 @@ import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.impl.ConfigurationCondition;
 import org.graalvm.nativeimage.impl.ReflectionRegistry;
 import org.graalvm.nativeimage.impl.RuntimeJNIAccessSupport;
+import org.graalvm.nativeimage.impl.RuntimeProxyCreationSupport;
 import org.graalvm.nativeimage.impl.RuntimeReflectionSupport;
 import org.graalvm.nativeimage.impl.RuntimeSerializationSupport;
 
@@ -52,9 +53,10 @@ public class RegistryAdapter implements ReflectionConfigurationParserDelegate<Cl
     protected final ReflectionRegistry registry;
     private final ImageClassLoader classLoader;
 
-    public static RegistryAdapter create(ReflectionRegistry registry, RuntimeSerializationSupport serializationSupport, RuntimeJNIAccessSupport jniSupport, ImageClassLoader classLoader) {
+    public static RegistryAdapter create(ReflectionRegistry registry, RuntimeProxyCreationSupport proxySupport, RuntimeSerializationSupport serializationSupport, RuntimeJNIAccessSupport jniSupport,
+                    ImageClassLoader classLoader) {
         if (registry instanceof RuntimeReflectionSupport) {
-            return new ReflectionRegistryAdapter((RuntimeReflectionSupport) registry, serializationSupport, jniSupport, classLoader);
+            return new ReflectionRegistryAdapter((RuntimeReflectionSupport) registry, proxySupport, serializationSupport, jniSupport, classLoader);
         } else if (registry instanceof RuntimeJNIAccessSupport) {
             return new JNIRegistryAdapter(registry, classLoader);
         } else {
