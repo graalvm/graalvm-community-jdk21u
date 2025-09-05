@@ -99,18 +99,7 @@ public final class ClassForNameSupport {
             result = PredefinedClassesSupport.getLoadedForNameOrNull(className, classLoader);
         }
         if (result == null && !ClassNameSupport.isValidReflectionName(className)) {
-            if (result == null && ClassNameSupport.isValidJNIName(className)) {
-                var jniAlias = singleton().knownClasses.get(ClassNameSupport.jniNameToReflectionName(className));
-                if (jniAlias != null) {
-                    result = new ClassNotFoundException(className);
-                }
-            }
-            if (result == null && ClassNameSupport.isValidTypeName(className)) {
-                var typeAlias = singleton().knownClasses.get(ClassNameSupport.typeNameToReflectionName(className));
-                if (typeAlias != null) {
-                    result = new ClassNotFoundException(className);
-                }
-            }
+            result = new ClassNotFoundException(className);
         }
         // Note: for non-predefined classes, we (currently) don't need to check the provided loader
         // TODO rewrite stack traces (GR-42813)
