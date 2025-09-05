@@ -34,6 +34,8 @@ import org.graalvm.nativeimage.impl.ConfigurationCondition;
 import org.graalvm.nativeimage.impl.RuntimeSerializationSupport;
 import org.graalvm.util.json.JSONParserException;
 
+import com.oracle.svm.util.LogUtils;
+
 final class LegacySerializationConfigurationParser extends SerializationConfigurationParser {
 
     private static final String SERIALIZATION_TYPES_KEY = "types";
@@ -78,6 +80,8 @@ final class LegacySerializationConfigurationParser extends SerializationConfigur
         }
     }
 
+    private boolean customConstructorWarningTriggered = false;
+
     @Override
     protected void parseSerializationDescriptorObject(EconomicMap<String, Object> data, boolean lambdaCapturingType) {
         if (lambdaCapturingType) {
@@ -97,9 +101,12 @@ final class LegacySerializationConfigurationParser extends SerializationConfigur
             String className = targetSerializationClass.name();
             serializationSupport.registerLambdaCapturingClass(condition.get(), className);
         } else {
-            Object optionalCustomCtorValue = data.get(CUSTOM_TARGET_CONSTRUCTOR_CLASS_KEY);
-            String customTargetConstructorClass = optionalCustomCtorValue != null ? asString(optionalCustomCtorValue) : null;
-            serializationSupport.registerWithTargetConstructorClass(condition.get(), targetSerializationClass.name(), customTargetConstructorClass);
+            if (!customConstructorWarningTriggered && data.containsKey(CUSTOM_TARGET_CONSTRUCTOR_CLASS_KEY)) {
+                customConstructorWarningTriggered = true;
+                LogUtils.warning("\"" + CUSTOM_TARGET_CONSTRUCTOR_CLASS_KEY +
+                                "\" is deprecated in serialization-config.json. All serializable classes can be instantiated through any superclass constructor without the use of the flag.");
+            }
+            serializationSupport.registerWithTargetConstructorClass(condition.get(), targetSerializationClass.name(), null);
         }
     }
 }
