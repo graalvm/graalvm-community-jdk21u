@@ -55,6 +55,7 @@ import com.oracle.graal.pointsto.infrastructure.UniverseMetaAccess;
 import com.oracle.graal.pointsto.meta.AnalysisMethod;
 import com.oracle.graal.pointsto.meta.AnalysisUniverse;
 import com.oracle.svm.core.ParsingReason;
+import com.oracle.svm.core.SubstrateOptions;
 import com.oracle.svm.core.SubstrateUtil;
 import com.oracle.svm.core.annotate.Delete;
 import com.oracle.svm.core.configure.ConfigurationFile;
@@ -266,7 +267,7 @@ public class ReflectionFeature implements InternalFeature, ReflectionSubstitutio
         reflectionData.duringSetup(access.getMetaAccess(), aUniverse);
         RuntimeProxyCreationSupport proxySupport = ImageSingletons.lookup(RuntimeProxyCreationSupport.class);
         RuntimeSerializationSupport serializationSupport = ImageSingletons.lookup(RuntimeSerializationSupport.class);
-        RuntimeJNIAccessSupport jniSupport = ImageSingletons.lookup(RuntimeJNIAccessSupport.class);
+        RuntimeJNIAccessSupport jniSupport = SubstrateOptions.JNI.getValue() ? ImageSingletons.lookup(RuntimeJNIAccessSupport.class) : null;
 
         ReflectionConfigurationParser<Class<?>> parser = ConfigurationParserUtils.create(REFLECTION_KEY, true, reflectionData, proxySupport, serializationSupport, jniSupport,
                         access.getImageClassLoader());
