@@ -185,7 +185,6 @@ public class PerfManager {
         @Override
         public void run() {
             initializeMemory();
-
             try {
                 sampleData();
                 ImageSingletons.lookup(PerfMemory.class).setAccessible();
@@ -213,8 +212,11 @@ public class PerfManager {
 
                 initialized = true;
                 initializationCondition.broadcast();
+            } catch (OutOfMemoryError e) {
+                /* For now, we can only rethrow the error to terminate the thread (see GR-40601). */
+                throw e;
             } catch (Throwable e) {
-                VMError.shouldNotReachHere(ERROR_DURING_INITIALIZATION, e);
+                throw VMError.shouldNotReachHere(ERROR_DURING_INITIALIZATION, e);
             } finally {
                 initializationMutex.unlock();
             }
