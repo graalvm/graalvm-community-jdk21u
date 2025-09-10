@@ -160,7 +160,6 @@ public abstract class LayoutStrategy {
 
     protected ShapeImpl definePropertyChangeFlags(ShapeImpl oldShape, Property existing, Object value, int propertyFlags, long putFlags) {
         assert existing.getFlags() != propertyFlags;
-        oldShape.onPropertyTransition(existing);
         if (existing.getLocation().canStore(value)) {
             Property newProperty = Property.create(existing.getKey(), existing.getLocation(), propertyFlags);
             return replaceProperty(oldShape, existing, newProperty);
@@ -170,7 +169,6 @@ public abstract class LayoutStrategy {
     }
 
     protected ShapeImpl definePropertyGeneralize(ShapeImpl oldShape, Property oldProperty, Object value, com.oracle.truffle.api.object.LocationFactory locationFactory, long putFlags) {
-        oldShape.onPropertyTransition(oldProperty);
         if (Flags.isSeparateShape(putFlags)) {
             Location newLocation = createLocationForValue(oldShape, value, putFlags, locationFactory);
             Property newProperty = ((PropertyImpl) oldProperty).relocate(newLocation);
@@ -189,7 +187,6 @@ public abstract class LayoutStrategy {
         Location oldLocation = oldProperty.getLocation();
         Location newLocation = currentShape.allocator().locationForValueUpcast(value, oldLocation, putFlags);
         Property newProperty = ((PropertyImpl) oldProperty).relocate(newLocation);
-        nextShape.onPropertyTransition(oldProperty);
         return replaceProperty(nextShape, oldProperty, newProperty);
     }
 
@@ -226,10 +223,9 @@ public abstract class LayoutStrategy {
 
     /** @since 0.17 or earlier */
     protected ShapeImpl removeProperty(ShapeImpl shape, Property property) {
-        shape.onPropertyTransition(property);
-
         boolean direct = shape.isShared();
         RemovePropertyTransition transition = newRemovePropertyTransition(property, direct);
+        shape.onPropertyTransition(transition);
         ShapeImpl cachedShape = shape.queryTransition(transition);
         if (cachedShape != null) {
             return ensureValid(cachedShape);
@@ -306,9 +302,8 @@ public abstract class LayoutStrategy {
             return shape;
         }
 
-        shape.onPropertyTransition(oldProperty);
-
-        Transition replacePropertyTransition = new Transition.DirectReplacePropertyTransition(oldProperty, newProperty);
+        var replacePropertyTransition = new Transition.DirectReplacePropertyTransition(oldProperty, newProperty);
+        shape.onPropertyTransition(replacePropertyTransition);
         ShapeImpl cachedShape = shape.queryTransition(replacePropertyTransition);
         if (cachedShape != null) {
             return cachedShape;
@@ -326,6 +321,7 @@ public abstract class LayoutStrategy {
     }
 
     protected ShapeImpl separateReplaceProperty(ShapeImpl shape, Property oldProperty, Property newProperty) {
+        shape.invalidateAllPropertyAssumptions();
         ShapeImpl newRoot = shape.createShape(shape.getLayout(), shape.sharedData, null, shape.objectType, PropertyMap.empty(), null, shape.getLayout().createAllocator(), shape.flags);
         ShapeImpl newShape = newRoot;
         boolean found = false;
@@ -343,6 +339,7 @@ public abstract class LayoutStrategy {
     }
 
     protected ShapeImpl createSeparateShape(ShapeImpl shape) {
+        shape.invalidateAllPropertyAssumptions();
         ShapeImpl newRoot = shape.createShape(shape.getLayout(), shape.sharedData, null, shape.objectType, PropertyMap.empty(), null, shape.getLayout().createAllocator(), shape.flags);
         ShapeImpl newShape = newRoot;
         for (Iterator<Property> iterator = shape.getPropertyMap().orderedValueIterator(); iterator.hasNext();) {
@@ -371,9 +368,9 @@ public abstract class LayoutStrategy {
 
     private ShapeImpl addPropertyInner(ShapeImpl shape, Property property) {
         assert !(shape.hasProperty(property.getKey())) : "duplicate property " + property.getKey();
-        shape.onPropertyTransition(property);
 
         AddPropertyTransition addTransition = newAddPropertyTransition(property);
+        shape.onPropertyTransition(addTransition);
         ShapeImpl cachedShape = shape.queryTransition(addTransition);
         if (cachedShape != null) {
             return cachedShape;
