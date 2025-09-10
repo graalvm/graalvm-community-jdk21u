@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,14 +29,13 @@ import static org.graalvm.compiler.lir.LIRInstruction.OperandFlag.HINT;
 import static org.graalvm.compiler.lir.LIRInstruction.OperandFlag.REG;
 
 import com.oracle.svm.core.FrameAccess;
+import com.oracle.svm.core.meta.SubstrateMethodPointerConstant;
 import org.graalvm.compiler.asm.amd64.AMD64Address;
 import org.graalvm.compiler.asm.amd64.AMD64MacroAssembler;
 import org.graalvm.compiler.lir.LIRInstructionClass;
 import org.graalvm.compiler.lir.StandardOp;
 import org.graalvm.compiler.lir.amd64.AMD64LIRInstruction;
 import org.graalvm.compiler.lir.asm.CompilationResultBuilder;
-
-import com.oracle.svm.core.meta.SubstrateMethodPointerConstant;
 
 import jdk.vm.ci.code.Register;
 import jdk.vm.ci.meta.AllocatableValue;
@@ -73,5 +72,10 @@ public final class AMD64LoadMethodPointerConstantOp extends AMD64LIRInstruction 
     @Override
     public SubstrateMethodPointerConstant getConstant() {
         return constant;
+    }
+
+    @Override
+    public boolean canRematerializeToStack() {
+        return false;
     }
 }

@@ -194,18 +194,14 @@ public final class ObjectHeaderImpl extends ObjectHeader {
     @Uninterruptible(reason = "Prevent a GC interfering with the object's identity hash state.", callerMustBe = true)
     @Override
     public void setIdentityHashFromAddress(Pointer ptr, Word currentHeader) {
-        if (GraalDirectives.inIntrinsic()) {
-            ReplacementsUtil.staticAssert(!hasFixedIdentityHashField(), "must always access field");
-        } else {
-            VMError.guarantee(!hasFixedIdentityHashField());
-            assert !hasIdentityHashFromAddress(currentHeader);
-        }
+        VMError.guarantee(!hasFixedIdentityHashField());
+        assert !hasIdentityHashFromAddress(currentHeader) : "must not already have a hashcode";
+
         UnsignedWord fromAddressState = IDHASH_STATE_FROM_ADDRESS.shiftLeft(IDHASH_STATE_SHIFT);
         UnsignedWord newHeader = currentHeader.and(IDHASH_STATE_BITS.not()).or(fromAddressState);
         writeHeaderToObject(ptr.toObjectNonNull(), newHeader);
-        if (!GraalDirectives.inIntrinsic()) {
-            assert hasIdentityHashFromAddress(readHeaderFromObject(ptr));
-        }
+
+        assert hasIdentityHashFromAddress(readHeaderFromPointer(ptr));
     }
 
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
@@ -295,7 +291,6 @@ public final class ObjectHeaderImpl extends ObjectHeader {
     @Override
     public long encodeAsImageHeapObjectHeader(ImageHeapObject obj, long hubOffsetFromHeapBase) {
         long header = hubOffsetFromHeapBase << numReservedExtraBits;
-        VMError.guarantee((header >>> numReservedExtraBits) == hubOffsetFromHeapBase, "Hub is too far from heap base for encoding in object header");
         assert (header & reservedBitsMask) == 0 : "Object header bits must be zero initially";
         if (HeapImpl.usesImageHeapCardMarking()) {
             if (obj.getPartition() instanceof ChunkedImageHeapPartition partition) {
@@ -313,6 +308,16 @@ public final class ObjectHeaderImpl extends ObjectHeader {
             header |= (IDHASH_STATE_IN_FIELD.rawValue() << IDHASH_STATE_SHIFT);
         }
         return header;
+    }
+
+    @Override
+    public void verifyDynamicHubOffsetInImageHeap(long offsetFromHeapBase) {
+        long referenceSizeMask = getReferenceSize() == Integer.BYTES ? 0xFFFF_FFFFL : -1L;
+        long encoded = (offsetFromHeapBase << numReservedExtraBits) & referenceSizeMask;
+        boolean shiftLosesInformation = (encoded >>> numReservedExtraBits != offsetFromHeapBase);
+        if (shiftLosesInformation) {
+            throw VMError.shouldNotReachHere("Hub is too far from heap base for encoding in object header: " + offsetFromHeapBase);
+        }
     }
 
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)

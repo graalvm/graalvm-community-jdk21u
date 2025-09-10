@@ -23,7 +23,7 @@
 suite = {
     "mxversion": "6.44.0",
     "name": "espresso",
-    "version" : "23.1.8",
+    "version" : "23.1.9",
     "release" : False,
     "groupId" : "org.graalvm.espresso",
     "url" : "https://www.graalvm.org/reference-manual/java-on-truffle/",
@@ -111,7 +111,7 @@ suite = {
             "dependencies": [
                 "truffle:TRUFFLE_API",
                 "truffle:TRUFFLE_NFI",
-                "truffle:TRUFFLE_ASM_9.5",
+                "truffle:TRUFFLE_ASM_9.7.1",
                 "com.oracle.truffle.espresso.jdwp",
             ],
             "requires": [

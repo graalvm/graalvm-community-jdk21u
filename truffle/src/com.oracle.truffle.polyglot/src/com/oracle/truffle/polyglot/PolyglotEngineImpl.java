@@ -120,6 +120,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.LanguageInfo;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.polyglot.PolyglotContextConfig.FileSystemConfig;
 import com.oracle.truffle.polyglot.PolyglotContextConfig.PreinitConfig;
@@ -232,6 +233,8 @@ final class PolyglotEngineImpl implements com.oracle.truffle.polyglot.PolyglotIm
     final boolean hostLanguageOnly;
 
     final List<PolyglotSharingLayer> sharedLayers = new ArrayList<>();
+
+    private final ReferenceQueue<Source> deadSourcesQueue = new ReferenceQueue<>();
 
     private boolean runtimeInitialized;
 
@@ -433,6 +436,10 @@ final class PolyglotEngineImpl implements com.oracle.truffle.polyglot.PolyglotIm
             default:
                 throw CompilerDirectives.shouldNotReachHere();
         }
+    }
+
+    ReferenceQueue<Source> getDeadSourcesQueue() {
+        return deadSourcesQueue;
     }
 
     void ensureRuntimeInitialized(PolyglotContextImpl context) {
@@ -2339,4 +2346,19 @@ final class PolyglotEngineImpl implements com.oracle.truffle.polyglot.PolyglotIm
         return languageHomes;
     }
 
+    /**
+     * Logs a message when other logging mechanisms, such as {@link TruffleLogger} or the context's
+     * error stream, are unavailable. This can occur, for instance, in the event of a log handler
+     * failure.
+     * <p>
+     * On HotSpot, this method writes the message to {@code System.err}. When running on a native
+     * image, this method is substituted to delegate logging to the native image's
+     * {@link org.graalvm.nativeimage.LogHandler}.
+     *
+     * @param message the message to log
+     */
+    static void logFallback(String message) {
+        PrintStream err = System.err;
+        err.println(message);
+    }
 }

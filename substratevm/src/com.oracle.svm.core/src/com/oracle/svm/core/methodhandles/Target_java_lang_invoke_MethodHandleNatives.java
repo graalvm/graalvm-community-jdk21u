@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -53,6 +53,7 @@ import com.oracle.svm.core.annotate.TargetElement;
 import com.oracle.svm.core.hub.DynamicHub;
 import com.oracle.svm.core.invoke.Target_java_lang_invoke_MemberName;
 import com.oracle.svm.core.jdk.JDK20OrEarlier;
+import com.oracle.svm.core.jdk.JDK21u8OrEarlier;
 import com.oracle.svm.core.reflect.target.Target_java_lang_reflect_Field;
 import com.oracle.svm.core.util.VMError;
 import com.oracle.svm.util.ReflectionUtil;
@@ -196,6 +197,7 @@ final class Target_java_lang_invoke_MethodHandleNatives {
     private static native void copyOutBootstrapArguments(Class<?> caller, int[] indexInfo, int start, int end, Object[] buf, int pos, boolean resolve, Object ifNotAvailable);
 
     @Substitute
+    @TargetElement(onlyWith = JDK21u8OrEarlier.class)
     private static void clearCallSiteContext(Target_java_lang_invoke_MethodHandleNatives_CallSiteContext context) {
         throw unimplemented("CallSiteContext not supported");
     }
@@ -395,6 +397,6 @@ final class Target_java_lang_invoke_MethodHandleNatives_Constants {
     // Checkstyle: resume
 }
 
-@TargetClass(className = "java.lang.invoke.MethodHandleNatives", innerClass = "CallSiteContext")
+@TargetClass(className = "java.lang.invoke.MethodHandleNatives", innerClass = "CallSiteContext", onlyWith = JDK21u8OrEarlier.class)
 final class Target_java_lang_invoke_MethodHandleNatives_CallSiteContext {
 }

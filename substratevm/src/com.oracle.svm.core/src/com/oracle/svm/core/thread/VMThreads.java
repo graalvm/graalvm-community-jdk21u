@@ -599,7 +599,7 @@ public abstract class VMThreads {
         return OSThreadIdTL.get(thread).equal(osThreadId);
     }
 
-    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
+    @Uninterruptible(reason = "Locking without transition requires that the whole critical section is uninterruptible.")
     public IsolateThread findIsolateThreadForCurrentOSThread(boolean inCrashHandler) {
         ThreadLookup threadLookup = ImageSingletons.lookup(ThreadLookup.class);
         ComparableWord identifier = threadLookup.getThreadIdentifier();
@@ -613,8 +613,9 @@ public abstract class VMThreads {
             THREAD_MUTEX.lockNoTransitionUnspecifiedOwner();
         }
         try {
-            IsolateThread thread;
-            for (thread = firstThreadUnsafe(); thread.isNonNull() && threadLookup.matchesThread(thread, identifier); thread = nextThread(thread)) {
+            IsolateThread thread = firstThreadUnsafe();
+            while (thread.isNonNull() && !threadLookup.matchesThread(thread, identifier)) {
+                thread = nextThread(thread);
             }
             return thread;
         } finally {
@@ -1096,7 +1097,7 @@ public abstract class VMThreads {
 
         @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
         public boolean matchesThread(IsolateThread thread, ComparableWord identifier) {
-            return OSThreadIdTL.get(thread).notEqual(identifier);
+            return OSThreadIdTL.get(thread).equal(identifier);
         }
     }
 }

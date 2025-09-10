@@ -625,7 +625,7 @@ public class NativeImageClassLoaderSupport {
                     initModule(moduleReference);
                 }
 
-                classpath().parallelStream().forEach(this::loadClassesFromPath);
+                classpath().forEach(this::loadClassesFromPath);
             } finally {
                 scheduledExecutor.shutdown();
             }

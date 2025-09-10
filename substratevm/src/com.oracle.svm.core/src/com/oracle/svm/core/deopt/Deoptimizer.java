@@ -311,7 +311,7 @@ public final class Deoptimizer {
                     "Note that we could start the stack frame also further down the stack, because VM operation frames never need deoptimization. " +
                     "But we don't store stack frame information for the first frame we would need to process.")
     private static void deoptimizeInRangeOperation(CodePointer fromIp, CodePointer toIp, boolean deoptAll) {
-        VMOperation.guaranteeInProgress("Deoptimizer.deoptimizeInRangeOperation, but not in VMOperation.");
+        VMOperation.guaranteeInProgressAtSafepoint("Deoptimizer.deoptimizeInRangeOperation, but not in VMOperation.");
         /* Handle my own thread specially, because I do not have a JavaFrameAnchor. */
         Pointer sp = KnownIntrinsics.readCallerStackPointer();
 
@@ -394,7 +394,7 @@ public final class Deoptimizer {
     }
 
     private static void deoptimizeFrameOperation(Pointer sourceSp, boolean ignoreNonDeoptimizable, SpeculationReason speculation, IsolateThread targetThread) {
-        VMOperation.guaranteeInProgress("doDeoptimizeFrame");
+        VMOperation.guaranteeInProgressAtSafepoint("doDeoptimizeFrame");
         CodePointer returnAddress = FrameAccess.singleton().readReturnAddress(sourceSp);
         deoptimizeFrame(sourceSp, ignoreNonDeoptimizable, speculation, returnAddress, targetThread);
     }
@@ -683,7 +683,7 @@ public final class Deoptimizer {
     }
 
     private DeoptimizedFrame deoptSourceFrameOperation(CodePointer pc, boolean ignoreNonDeoptimizable) {
-        VMOperation.guaranteeInProgress("deoptSourceFrame");
+        VMOperation.guaranteeInProgressAtSafepoint("deoptSourceFrame");
 
         DeoptimizedFrame existing = checkDeoptimized(sourceSp);
         if (existing != null) {

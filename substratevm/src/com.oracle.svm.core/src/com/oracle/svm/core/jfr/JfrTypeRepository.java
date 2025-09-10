@@ -104,6 +104,7 @@ public class JfrTypeRepository implements JfrRepository {
 
     private void visitClass(TypeInfo typeInfo, Class<?> clazz) {
         if (clazz != null && addClass(typeInfo, clazz)) {
+            visitClassLoader(typeInfo, clazz.getClassLoader());
             visitPackage(typeInfo, clazz.getPackage(), clazz.getModule());
             visitClass(typeInfo, clazz.getSuperclass());
         }
@@ -313,9 +314,8 @@ public class JfrTypeRepository implements JfrRepository {
                 return flushedClassLoaders.get(classLoader);
             }
             return typeInfo.classLoaders.get(classLoader);
-        } else {
-            return 0;
         }
+        return 0;
     }
 
     private void clearEpochData() {

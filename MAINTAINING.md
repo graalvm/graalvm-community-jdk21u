@@ -26,4 +26,5 @@ Between step 1 and 3 no new pull requests should be merged.
 
 * [Boris Ulasevich](https://github.com/bulasevich)
 * [Cesar Soares](https://github.com/JohnTortugo)
+* [John Spurling](https://github.com/synecdoche)
 * [Volker Simonis](https://github.com/simonis/)

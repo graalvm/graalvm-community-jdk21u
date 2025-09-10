@@ -288,4 +288,9 @@ final class FillerObjectDummyPartition implements ImageHeapPartition {
     public long getSize() {
         throw VMError.shouldNotReachHereAtRuntime(); // ExcludeFromJacocoGeneratedReport
     }
+
+    @Override
+    public boolean isFiller() {
+        return true;
+    }
 }

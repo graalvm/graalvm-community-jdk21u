@@ -33,9 +33,15 @@ import org.graalvm.word.WordFactory;
 
 import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.config.ConfigurationValues;
+import com.oracle.svm.core.heap.OutOfMemoryUtil;
 import com.oracle.svm.core.heap.RestrictHeapAccess;
 
 public abstract class ChunkBasedCommittedMemoryProvider extends AbstractCommittedMemoryProvider {
+    protected static final OutOfMemoryError ALIGNED_CHUNK_COMMIT_FAILED = new OutOfMemoryError("Could not commit an aligned heap chunk. " +
+                    "Either the OS/container is out of memory or another system-level resource limit was reached (such as the number of memory mappings).");
+    protected static final OutOfMemoryError UNALIGNED_CHUNK_COMMIT_FAILED = new OutOfMemoryError("Could not commit an unaligned heap chunk. " +
+                    "Either the OS/container is out of memory or another system-level resource limit was reached (such as the number of memory mappings).");
+
     @Fold
     public static ChunkBasedCommittedMemoryProvider get() {
         return (ChunkBasedCommittedMemoryProvider) ImageSingletons.lookup(CommittedMemoryProvider.class);
@@ -43,11 +49,19 @@ public abstract class ChunkBasedCommittedMemoryProvider extends AbstractCommitte
 
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     public Pointer allocateAlignedChunk(UnsignedWord nbytes, UnsignedWord alignment) {
-        return allocate(nbytes, alignment, false);
+        Pointer result = allocate(nbytes, alignment, false);
+        if (result.isNull()) {
+            throw OutOfMemoryUtil.reportOutOfMemoryError(ALIGNED_CHUNK_COMMIT_FAILED);
+        }
+        return result;
     }
 
     public Pointer allocateUnalignedChunk(UnsignedWord nbytes) {
-        return allocate(nbytes, getAlignmentForUnalignedChunks(), false);
+        Pointer result = allocate(nbytes, getAlignmentForUnalignedChunks(), false);
+        if (result.isNull()) {
+            throw OutOfMemoryUtil.reportOutOfMemoryError(UNALIGNED_CHUNK_COMMIT_FAILED);
+        }
+        return result;
     }
 
     /**

@@ -84,4 +84,9 @@ public class LinearImageHeapPartition extends AbstractImageHeapPartition {
     public long getSize() {
         return getEndOffset() - getStartOffset();
     }
+
+    @Override
+    public boolean isFiller() {
+        return false;
+    }
 }

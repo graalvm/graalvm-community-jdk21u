@@ -1621,6 +1621,7 @@ public class OracleDBTests extends RegexTestBase {
         test("(?:a()|b??){22,26}c", "", "aabbbaabaaaaaabaaaac", 0, true, 19, 20, 19, 19, -1, -1);
         test("b()(a\\1|){4,4}\\2c", "", "baaaac", 0, false);
         test("a((?=b()|)[a-d])+", "", "abbbcbd", 0, true, 0, 7, 6, 7, 6, 6, -1, -1);
+        test("\u0282\\\ud807\udfdd+\u1cf2", "", "\u0282\ud807\udfdd\ud807\udfdd\u1cf2", 0, true, 0, 13);
         test("(a{1100,1100})\\1", "i", "a".repeat(2400), 0, true, 0, 2200, 0, 1100);
 
         /* GENERATED CODE END - KEEP THIS MARKER FOR AUTOMATIC UPDATES */

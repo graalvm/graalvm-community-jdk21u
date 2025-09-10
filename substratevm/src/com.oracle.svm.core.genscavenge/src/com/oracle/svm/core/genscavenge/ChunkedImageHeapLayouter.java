@@ -82,7 +82,7 @@ public class ChunkedImageHeapLayouter extends AbstractImageHeapLayouter<ChunkedI
         for (ChunkedImageHeapPartition partition : getPartitions()) {
             partition.layout(allocator);
         }
-        return populateInfoObjects(imageHeap.countDynamicHubs());
+        return populateInfoObjects(imageHeap.countAndVerifyDynamicHubs());
     }
 
     private ImageHeapLayoutInfo populateInfoObjects(int dynamicHubCount) {

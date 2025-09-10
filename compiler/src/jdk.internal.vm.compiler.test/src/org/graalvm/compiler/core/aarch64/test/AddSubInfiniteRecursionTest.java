@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,32 +22,27 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.svm.hosted.option;
+package org.graalvm.compiler.core.aarch64.test;
 
-import org.graalvm.collections.EconomicMap;
-import org.graalvm.compiler.options.OptionKey;
-import org.graalvm.compiler.options.OptionValues;
+import org.graalvm.compiler.core.test.GraalCompilerTest;
+import org.junit.Test;
 
-public class HostedOptionCustomizer implements HostedOptionProvider {
-
-    private final EconomicMap<OptionKey<?>, Object> hostedValues;
-    private final EconomicMap<OptionKey<?>, Object> runtimeValues;
-
-    public HostedOptionCustomizer(HostedOptionProvider original) {
-        hostedValues = OptionValues.newOptionMap();
-        hostedValues.putAll(original.getHostedValues());
-
-        runtimeValues = OptionValues.newOptionMap();
-        runtimeValues.putAll(original.getRuntimeValues());
+/**
+ * Add/sub with an immediate MIN_VALUE may result in infinite recursion since MIN_VALUE < 0 and
+ * -MIN_VALUE < 0.
+ */
+public class AddSubInfiniteRecursionTest extends GraalCompilerTest {
+    public static int testAddIntMinValue(int arg) {
+        return arg + Integer.MIN_VALUE;
     }
 
-    @Override
-    public EconomicMap<OptionKey<?>, Object> getHostedValues() {
-        return hostedValues;
+    public static int testSubIntMinValue(int arg) {
+        return arg - Integer.MIN_VALUE;
     }
 
-    @Override
-    public EconomicMap<OptionKey<?>, Object> getRuntimeValues() {
-        return runtimeValues;
+    @Test
+    public void runIntMinValue() {
+        test("testAddIntMinValue", 0);
+        test("testSubIntMinValue", 0);
     }
 }
