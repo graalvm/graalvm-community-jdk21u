@@ -47,6 +47,7 @@ import com.oracle.truffle.regex.RegexFlags;
 import com.oracle.truffle.regex.RegexLanguage;
 import com.oracle.truffle.regex.RegexSource;
 import com.oracle.truffle.regex.RegexSyntaxException;
+import com.oracle.truffle.regex.UnsupportedRegexException;
 import com.oracle.truffle.regex.charset.ClassSetContents;
 import com.oracle.truffle.regex.charset.CodePointSet;
 import com.oracle.truffle.regex.charset.CodePointSetAccumulator;
@@ -168,7 +169,7 @@ public final class OracleDBRegexParser implements RegexParser {
                     break;
                 case quantifier:
                     if (prevKind == Token.Kind.quantifier) {
-                        throw syntaxError(OracleDBErrorMessages.NESTED_QUANTIFIER);
+                        throw new UnsupportedRegexException(OracleDBErrorMessages.NESTED_QUANTIFIER);
                     }
                     if (astBuilder.getCurTerm() == null || prevKind == Token.Kind.captureGroupBegin) {
                         // quantifiers without target are ignored

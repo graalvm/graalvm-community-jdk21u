@@ -215,8 +215,8 @@ public abstract class RegexTestBase {
         // print(pattern, input, fromIndex, result, groupCount, captureGroupBoundsAndLastGroup);
     }
 
-    void expectUnsupported(String pattern, String flags) {
-        expectUnsupported(pattern, flags, "");
+    void expectUnsupported(String pattern) {
+        expectUnsupported(pattern, "", "");
     }
 
     void expectUnsupported(String pattern, String flags, String options) {
