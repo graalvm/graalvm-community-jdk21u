@@ -107,6 +107,9 @@ public final class BitSets {
         return bs[wordIndex(index)] != old;
     }
 
+    /**
+     * Set all bits from lo (inclusive) to hi (inclusive).
+     */
     public static void setRange(long[] bs, int lo, int hi) {
         int wordIndexLo = wordIndex(lo);
         int wordIndexHi = wordIndex(hi);
@@ -123,6 +126,9 @@ public final class BitSets {
         bs[wordIndexHi] |= rangeHi;
     }
 
+    /**
+     * Clear all bits from lo (inclusive) to hi (inclusive).
+     */
     public static void clearRange(long[] bs, int lo, int hi) {
         int wordIndexLo = wordIndex(lo);
         int wordIndexHi = wordIndex(hi);
