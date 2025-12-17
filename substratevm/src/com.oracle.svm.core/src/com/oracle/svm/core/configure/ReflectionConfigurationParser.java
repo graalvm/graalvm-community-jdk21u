@@ -44,13 +44,15 @@ import com.oracle.svm.util.LogUtils;
 public abstract class ReflectionConfigurationParser<T> extends ConfigurationParser {
     private static final String CONSTRUCTOR_NAME = "<init>";
 
+    protected final String combinedFileKey;
     protected final ConfigurationConditionResolver conditionResolver;
     protected final ReflectionConfigurationParserDelegate<T> delegate;
     private final boolean printMissingElements;
 
-    public ReflectionConfigurationParser(ConfigurationConditionResolver conditionResolver, ReflectionConfigurationParserDelegate<T> delegate, boolean strictConfiguration,
+    public ReflectionConfigurationParser(String combinedFileKey, ConfigurationConditionResolver conditionResolver, ReflectionConfigurationParserDelegate<T> delegate, boolean strictConfiguration,
                     boolean printMissingElements) {
         super(strictConfiguration);
+        this.combinedFileKey = combinedFileKey;
         this.conditionResolver = conditionResolver;
         this.printMissingElements = printMissingElements;
         this.delegate = delegate;
@@ -61,7 +63,7 @@ public abstract class ReflectionConfigurationParser<T> extends ConfigurationPars
         if (strictMetadata) {
             return new ReflectionMetadataParser<>(combinedFileKey, ConfigurationConditionResolver.identityResolver(), delegate, strictConfiguration, printMissingElements);
         } else {
-            return new LegacyReflectionConfigurationParser<>(ConfigurationConditionResolver.identityResolver(), delegate, strictConfiguration, printMissingElements, false);
+            return new LegacyReflectionConfigurationParser<>(combinedFileKey, ConfigurationConditionResolver.identityResolver(), delegate, strictConfiguration, printMissingElements, false);
         }
     }
 
@@ -73,29 +75,31 @@ public abstract class ReflectionConfigurationParser<T> extends ConfigurationPars
 
     protected abstract void parseClass(EconomicMap<String, Object> data);
 
-    protected void registerIfNotDefault(EconomicMap<String, Object> data, boolean defaultValue, T clazz, String propertyName, Runnable register) {
+    protected boolean registerIfNotDefault(EconomicMap<String, Object> data, boolean defaultValue, T clazz, String propertyName, Runnable register) {
         if (data.containsKey(propertyName) ? asBoolean(data.get(propertyName), propertyName) : defaultValue) {
             try {
                 register.run();
+                return true;
             } catch (LinkageError e) {
                 handleMissingElement("Could not register " + delegate.getTypeName(clazz) + ": " + propertyName + " for reflection.", e);
             }
         }
+        return false;
     }
 
-    protected void parseFields(ConfigurationCondition condition, List<Object> fields, T clazz) {
+    protected void parseFields(ConfigurationCondition condition, List<Object> fields, T clazz, boolean jniAccessible) {
         for (Object field : fields) {
-            parseField(condition, asMap(field, "Elements of 'fields' array must be field descriptor objects"), clazz);
+            parseField(condition, asMap(field, "Elements of 'fields' array must be field descriptor objects"), clazz, jniAccessible);
         }
     }
 
-    private void parseField(ConfigurationCondition condition, EconomicMap<String, Object> data, T clazz) {
+    private void parseField(ConfigurationCondition condition, EconomicMap<String, Object> data, T clazz, boolean jniAccessible) {
         checkAttributes(data, "reflection field descriptor object", Collections.singleton("name"), Arrays.asList("allowWrite", "allowUnsafeAccess"));
         String fieldName = asString(data.get("name"), "name");
         boolean allowWrite = data.containsKey("allowWrite") && asBoolean(data.get("allowWrite"), "allowWrite");
 
         try {
-            delegate.registerField(condition, clazz, fieldName, allowWrite);
+            delegate.registerField(condition, clazz, fieldName, allowWrite, jniAccessible);
         } catch (NoSuchFieldException e) {
             handleMissingElement("Field " + formatField(clazz, fieldName) + " not found.");
         } catch (LinkageError e) {
@@ -103,13 +107,13 @@ public abstract class ReflectionConfigurationParser<T> extends ConfigurationPars
         }
     }
 
-    protected void parseMethods(ConfigurationCondition condition, boolean queriedOnly, List<Object> methods, T clazz) {
+    protected void parseMethods(ConfigurationCondition condition, boolean queriedOnly, List<Object> methods, T clazz, boolean jniAccessible) {
         for (Object method : methods) {
-            parseMethod(condition, queriedOnly, asMap(method, "Elements of 'methods' array must be method descriptor objects"), clazz);
+            parseMethod(condition, queriedOnly, asMap(method, "Elements of 'methods' array must be method descriptor objects"), clazz, jniAccessible);
         }
     }
 
-    private void parseMethod(ConfigurationCondition condition, boolean queriedOnly, EconomicMap<String, Object> data, T clazz) {
+    private void parseMethod(ConfigurationCondition condition, boolean queriedOnly, EconomicMap<String, Object> data, T clazz, boolean jniAccessible) {
         checkAttributes(data, "reflection method descriptor object", Collections.singleton("name"), Collections.singleton("parameterTypes"));
         String methodName = asString(data.get("name"), "name");
         List<T> methodParameterTypes = null;
@@ -125,9 +129,9 @@ public abstract class ReflectionConfigurationParser<T> extends ConfigurationPars
         if (methodParameterTypes != null) {
             try {
                 if (isConstructor) {
-                    delegate.registerConstructor(condition, queriedOnly, clazz, methodParameterTypes);
+                    delegate.registerConstructor(condition, queriedOnly, clazz, methodParameterTypes, jniAccessible);
                 } else {
-                    delegate.registerMethod(condition, queriedOnly, clazz, methodName, methodParameterTypes);
+                    delegate.registerMethod(condition, queriedOnly, clazz, methodName, methodParameterTypes, jniAccessible);
                 }
             } catch (NoSuchMethodException e) {
                 handleMissingElement("Method " + formatMethod(clazz, methodName, methodParameterTypes) + " not found.");
@@ -138,9 +142,9 @@ public abstract class ReflectionConfigurationParser<T> extends ConfigurationPars
             try {
                 boolean found;
                 if (isConstructor) {
-                    found = delegate.registerAllConstructors(condition, queriedOnly, clazz);
+                    found = delegate.registerAllConstructors(condition, queriedOnly, jniAccessible, clazz);
                 } else {
-                    found = delegate.registerAllMethodsWithName(condition, queriedOnly, clazz, methodName);
+                    found = delegate.registerAllMethodsWithName(condition, queriedOnly, jniAccessible, clazz, methodName);
                 }
                 if (!found) {
                     throw new JSONParserException("Method " + formatMethod(clazz, methodName) + " not found");
