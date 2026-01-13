@@ -1590,9 +1590,7 @@ public abstract class OptimizedCallTarget implements TruffleCompilable, RootCall
 
     public final OptimizedDirectCallNode getCallSiteForSplit() {
         if (isSplit()) {
-            OptimizedDirectCallNode callNode = getSingleCallNode();
-            assert callNode != null;
-            return callNode;
+            return getSingleCallNode();
         } else {
             return null;
         }
