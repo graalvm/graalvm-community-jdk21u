@@ -31,6 +31,7 @@ import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
+import com.oracle.svm.core.configure.ClassNameSupport;
 import com.oracle.svm.core.feature.AutomaticallyRegisteredImageSingleton;
 import com.oracle.svm.core.reflect.MissingReflectionRegistrationUtils;
 import com.oracle.svm.core.util.ImageHeapMap;
@@ -96,6 +97,9 @@ public final class ClassForNameSupport {
         }
         if (result == null) {
             result = PredefinedClassesSupport.getLoadedForNameOrNull(className, classLoader);
+        }
+        if (result == null && !ClassNameSupport.isValidReflectionName(className)) {
+            result = new ClassNotFoundException(className);
         }
         // Note: for non-predefined classes, we (currently) don't need to check the provided loader
         // TODO rewrite stack traces (GR-42813)

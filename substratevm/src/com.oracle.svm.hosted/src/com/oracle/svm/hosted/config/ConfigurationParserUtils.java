@@ -40,6 +40,9 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.graalvm.nativeimage.impl.ReflectionRegistry;
+import org.graalvm.nativeimage.impl.RuntimeJNIAccessSupport;
+import org.graalvm.nativeimage.impl.RuntimeProxyCreationSupport;
+import org.graalvm.nativeimage.impl.RuntimeSerializationSupport;
 import org.graalvm.util.json.JSONParserException;
 
 import com.oracle.svm.core.configure.ConfigurationFile;
@@ -53,8 +56,9 @@ import com.oracle.svm.hosted.ImageClassLoader;
 
 public final class ConfigurationParserUtils {
 
-    public static ReflectionConfigurationParser<Class<?>> create(String combinedFileKey, boolean strictMetadata, ReflectionRegistry registry, ImageClassLoader imageClassLoader) {
-        return ReflectionConfigurationParser.create(combinedFileKey, strictMetadata, RegistryAdapter.create(registry, imageClassLoader),
+    public static ReflectionConfigurationParser<Class<?>> create(String combinedFileKey, boolean strictMetadata, ReflectionRegistry registry, RuntimeProxyCreationSupport proxySupport,
+                    RuntimeSerializationSupport serializationSupport, RuntimeJNIAccessSupport jniSupport, ImageClassLoader imageClassLoader) {
+        return ReflectionConfigurationParser.create(combinedFileKey, strictMetadata, RegistryAdapter.create(registry, proxySupport, serializationSupport, jniSupport, imageClassLoader),
                         ConfigurationFiles.Options.StrictConfiguration.getValue(), ConfigurationFiles.Options.WarnAboutMissingReflectionOrJNIMetadataElements.getValue());
     }
 
