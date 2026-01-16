@@ -97,7 +97,7 @@ public final class ConfigurationFiles {
         public static final HostedOptionKey<LocatableMultiOptionValue.Strings> JNIConfigurationResources = new HostedOptionKey<>(LocatableMultiOptionValue.Strings.buildWithCommaDelimiter());
 
         @Option(help = "Resources describing reachability metadata needed for the program " +
-                        "https://github.com/oracle/graal/blob/master/docs/reference-manual/native-image/assets/reachability-metadata-schema-v1.0.0.json", type = OptionType.User)//
+                        "https://github.com/oracle/graal/blob/master/docs/reference-manual/native-image/assets/reachability-metadata-schema-v1.2.0.json", type = OptionType.User)//
         public static final HostedOptionKey<LocatableMultiOptionValue.Strings> ReachabilityMetadataResources = new HostedOptionKey<>(
                         LocatableMultiOptionValue.Strings.buildWithCommaDelimiter());
 

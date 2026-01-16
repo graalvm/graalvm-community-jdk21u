@@ -7,9 +7,9 @@ permalink: /reference-manual/native-image/metadata/
 
 # Reachability Metadata
 
-The dynamic language features of the JVM (including reflection and resource handling) compute the *dynamically-accessed program elements* such as invoked methods or resource URLs at runtime. 
+The dynamic language features of the JVM (including reflection and resource handling) compute the *dynamically-accessed program elements* such as invoked methods or resource URLs at runtime.
 The `native-image` tool performs [static analysis](NativeImageBasics.md#static-analysis-reachability-and-closed-world-assumption) while building a native binary to determine those dynamic features, but it cannot always exhaustively predict all uses.
-To ensure inclusion of these elements into the native binary, you should provide **reachability metadata** (in further text referred as *metadata*) to the `native-image` builder. 
+To ensure inclusion of these elements into the native binary, you should provide **reachability metadata** (in further text referred as *metadata*) to the `native-image` builder.
 Providing the builder with reachability metadata also ensures seamless compatibility with third-party libraries at runtime.
 
 Metadata can be provided to the `native-image` builder in following ways:
@@ -94,10 +94,10 @@ Find more examples of the configuration files in the [GraalVM Reachability Metad
 ## Metadata Types
 
 Native Image accepts the following types of reachability metadata:
-- [Java reflection](#reflection) (the `java.lang.reflect.*` API) enables Java code to examine its own classes, methods, fields, and their properties at run time.   
+- [Java reflection](#reflection) (the `java.lang.reflect.*` API) enables Java code to examine its own classes, methods, fields, and their properties at run time.
 - [JNI](#java-native-interface) allows native code to access classes, methods, fields and their properties at run time.
 - [Resources and Resource Bundles](#resources-and-resource-bundles) allow arbitrary files present in the application to be loaded.
-- [Dynamic JDK Proxies](#dynamic-proxy) create classes on demand that implement a given list of interfaces. 
+- [Dynamic JDK Proxies](#dynamic-proxy) create classes on demand that implement a given list of interfaces.
 - [Serialization](#serialization) enables writing and reading Java objects to and from streams.
 - [Predefined Classes](#predefined-classes) provide support for dynamically generated classes.
 
@@ -146,7 +146,7 @@ Integer.class.getMethod("parseInt", params2);
 
 ### Specifying Reflection Metadata in JSON
 
-Reflection metadata should be specified in a _reflect-config.json_ file and conform to the JSON schema defined in 
+Reflection metadata should be specified in a _reflect-config.json_ file and conform to the JSON schema defined in
 [reflect-config-schema-v1.0.0.json](https://github.com/oracle/graal/blob/master/docs/reference-manual/native-image/assets/reflect-config-schema-v1.0.0.json).
 The schema also includes further details and explanations how this configuration works. Here is the example of the reflect-config.json:
 ```json
@@ -167,7 +167,7 @@ The schema also includes further details and explanations how this configuration
         ],
         "allDeclaredClasses": true,
         "allDeclaredMethods": true,
-        "allDeclaredFields": true, 
+        "allDeclaredFields": true,
         "allDeclaredConstructors": true,
         "allPublicClasses": true,
         "allPublicMethods": true,
@@ -347,13 +347,13 @@ requires reflectively accessing the class of the object that is being serialized
 
 ### Serialization Metadata Registration In Code
 
-Native Image detects calls to `ObjectInputFilter.Config#createFilter(String pattern)` and if the `pattern` argument is constant, the exact classes mentioned in the pattern will be registered for serialization. 
+Native Image detects calls to `ObjectInputFilter.Config#createFilter(String pattern)` and if the `pattern` argument is constant, the exact classes mentioned in the pattern will be registered for serialization.
 For example, the following pattern will register the class `pkg.SerializableClass` for serialization:
 ```java
   var filter = ObjectInputFilter.Config.createFilter("pkg.SerializableClass;!*;")
   objectInputStream.setObjectInputFilter(proof);
 ```
-Using this pattern has a positive side effect of improving security on the JVM as only `pkg.SerializableClass` can be received by the 
+Using this pattern has a positive side effect of improving security on the JVM as only `pkg.SerializableClass` can be received by the
 `objectInputStream`.
 
 Wildcard patterns do the serialization registration only for lambda-proxy classes of an enclosing class. For example, to register lambda serialization in an enclosing class `pkg.LambdaHolder` use:
@@ -361,9 +361,9 @@ Wildcard patterns do the serialization registration only for lambda-proxy classe
   ObjectInputFilter.Config.createFilter("pkg.LambdaHolder$$Lambda*;")
 ```
 
-Patterns like `"pkg.**"` and `"pkg.Prefix*"` will not perform serialization registration as they are too general and would increase image size significantly. 
+Patterns like `"pkg.**"` and `"pkg.Prefix*"` will not perform serialization registration as they are too general and would increase image size significantly.
 
-For calls to the `sun.reflect.ReflectionFactory#newConstructorForSerialization(java.lang.Class)` and `sun.reflect.ReflectionFactory#newConstructorForSerialization(java.lang.Class, )` native image detects calls to these functions when all arguments and the receiver are constant. For example, the following call will register `SerializlableClass` for serialization: 
+For calls to the `sun.reflect.ReflectionFactory#newConstructorForSerialization(java.lang.Class)` and `sun.reflect.ReflectionFactory#newConstructorForSerialization(java.lang.Class, )` native image detects calls to these functions when all arguments and the receiver are constant. For example, the following call will register `SerializlableClass` for serialization:
 ```java
   ReflectionFactory.getReflectionFactory().newConstructorForSerialization(SerializableClass.class);
 ```
@@ -372,7 +372,7 @@ To create a custom constructor for serialization use:
   var constructor = SuperSuperClass.class.getDeclaredConstructor();
   var newConstructor = ReflectionFactory.getReflectionFactory().newConstructorForSerialization(BaseClass.class, constructor);
 ```
-Proxy classes can only be registered for serialization via the JSON files. 
+Proxy classes can only be registered for serialization via the JSON files.
 
 ### Serialization Metadata in JSON
 
