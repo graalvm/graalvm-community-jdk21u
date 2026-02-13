@@ -38,14 +38,11 @@ import com.oracle.svm.core.TypeResult;
 class ReflectionMetadataParser<T> extends ReflectionConfigurationParser<T> {
     private static final List<String> OPTIONAL_REFLECT_METADATA_ATTRS = Arrays.asList(CONDITIONAL_KEY,
                     "allDeclaredConstructors", "allPublicConstructors", "allDeclaredMethods", "allPublicMethods", "allDeclaredFields", "allPublicFields",
-                    "methods", "fields", "unsafeAllocated");
-
-    private final String combinedFileKey;
+                    "methods", "fields", "unsafeAllocated", "serializable", "jniAccessible");
 
     ReflectionMetadataParser(String combinedFileKey, ConfigurationConditionResolver conditionResolver, ReflectionConfigurationParserDelegate<T> delegate, boolean strictConfiguration,
                     boolean printMissingElements) {
-        super(conditionResolver, delegate, strictConfiguration, printMissingElements);
-        this.combinedFileKey = combinedFileKey;
+        super(combinedFileKey, conditionResolver, delegate, strictConfiguration, printMissingElements);
     }
 
     @Override
@@ -86,25 +83,36 @@ class ReflectionMetadataParser<T> extends ReflectionConfigurationParser<T> {
         T clazz = result.get();
         delegate.registerType(conditionResult.get(), clazz);
 
+        boolean jniParser = combinedFileKey.equals(JNI_KEY);
         delegate.registerDeclaredClasses(queryCondition, clazz);
-        delegate.registerRecordComponents(queryCondition, clazz);
-        delegate.registerPermittedSubclasses(queryCondition, clazz);
-        delegate.registerNestMembers(queryCondition, clazz);
-        delegate.registerSigners(queryCondition, clazz);
         delegate.registerPublicClasses(queryCondition, clazz);
-        delegate.registerDeclaredConstructors(queryCondition, true, clazz);
-        delegate.registerPublicConstructors(queryCondition, true, clazz);
-        delegate.registerDeclaredMethods(queryCondition, true, clazz);
-        delegate.registerPublicMethods(queryCondition, true, clazz);
-        delegate.registerDeclaredFields(queryCondition, true, clazz);
-        delegate.registerPublicFields(queryCondition, true, clazz);
+        if (!jniParser) {
+            delegate.registerRecordComponents(queryCondition, clazz);
+            delegate.registerPermittedSubclasses(queryCondition, clazz);
+            delegate.registerNestMembers(queryCondition, clazz);
+            delegate.registerSigners(queryCondition, clazz);
+        }
+        delegate.registerDeclaredConstructors(queryCondition, true, jniParser, clazz);
+        delegate.registerPublicConstructors(queryCondition, true, jniParser, clazz);
+        delegate.registerDeclaredMethods(queryCondition, true, jniParser, clazz);
+        delegate.registerPublicMethods(queryCondition, true, jniParser, clazz);
+        delegate.registerDeclaredFields(queryCondition, true, jniParser, clazz);
+        delegate.registerPublicFields(queryCondition, true, jniParser, clazz);
 
-        registerIfNotDefault(data, false, clazz, "allDeclaredConstructors", () -> delegate.registerDeclaredConstructors(condition, false, clazz));
-        registerIfNotDefault(data, false, clazz, "allPublicConstructors", () -> delegate.registerPublicConstructors(condition, false, clazz));
-        registerIfNotDefault(data, false, clazz, "allDeclaredMethods", () -> delegate.registerDeclaredMethods(condition, false, clazz));
-        registerIfNotDefault(data, false, clazz, "allPublicMethods", () -> delegate.registerPublicMethods(condition, false, clazz));
-        registerIfNotDefault(data, false, clazz, "allDeclaredFields", () -> delegate.registerDeclaredFields(condition, false, clazz));
-        registerIfNotDefault(data, false, clazz, "allPublicFields", () -> delegate.registerPublicFields(condition, false, clazz));
+        boolean typeJniAccessible;
+        if (jniParser) {
+            typeJniAccessible = true;
+        } else {
+            registerIfNotDefault(data, false, clazz, "serializable", () -> delegate.registerAsSerializable(condition, clazz));
+            typeJniAccessible = registerIfNotDefault(data, false, clazz, "jniAccessible", () -> delegate.registerAsJniAccessed(condition, clazz));
+        }
+
+        registerIfNotDefault(data, false, clazz, "allDeclaredConstructors", () -> delegate.registerDeclaredConstructors(condition, false, typeJniAccessible, clazz));
+        registerIfNotDefault(data, false, clazz, "allPublicConstructors", () -> delegate.registerPublicConstructors(condition, false, typeJniAccessible, clazz));
+        registerIfNotDefault(data, false, clazz, "allDeclaredMethods", () -> delegate.registerDeclaredMethods(condition, false, typeJniAccessible, clazz));
+        registerIfNotDefault(data, false, clazz, "allPublicMethods", () -> delegate.registerPublicMethods(condition, false, typeJniAccessible, clazz));
+        registerIfNotDefault(data, false, clazz, "allDeclaredFields", () -> delegate.registerDeclaredFields(condition, false, typeJniAccessible, clazz));
+        registerIfNotDefault(data, false, clazz, "allPublicFields", () -> delegate.registerPublicFields(condition, false, typeJniAccessible, clazz));
         registerIfNotDefault(data, false, clazz, "unsafeAllocated", () -> delegate.registerUnsafeAllocated(condition, clazz));
 
         MapCursor<String, Object> cursor = data.getEntries();
@@ -114,10 +122,10 @@ class ReflectionMetadataParser<T> extends ReflectionConfigurationParser<T> {
             try {
                 switch (name) {
                     case "methods":
-                        parseMethods(condition, false, asList(value, "Attribute 'methods' must be an array of method descriptors"), clazz);
+                        parseMethods(condition, false, asList(value, "Attribute 'methods' must be an array of method descriptors"), clazz, typeJniAccessible);
                         break;
                     case "fields":
-                        parseFields(condition, asList(value, "Attribute 'fields' must be an array of field descriptors"), clazz);
+                        parseFields(condition, asList(value, "Attribute 'fields' must be an array of field descriptors"), clazz, typeJniAccessible);
                         break;
                 }
             } catch (LinkageError e) {

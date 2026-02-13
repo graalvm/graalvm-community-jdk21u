@@ -42,6 +42,7 @@ import com.oracle.svm.core.jdk.proxy.DynamicProxyRegistry;
 import com.oracle.svm.core.reflect.proxy.DynamicProxySupport;
 import com.oracle.svm.hosted.ConfigurationTypeResolver;
 import com.oracle.svm.hosted.FallbackFeature;
+import com.oracle.svm.hosted.FeatureImpl;
 import com.oracle.svm.hosted.FeatureImpl.DuringAnalysisAccessImpl;
 import com.oracle.svm.hosted.FeatureImpl.DuringSetupAccessImpl;
 import com.oracle.svm.hosted.ImageClassLoader;
@@ -52,6 +53,7 @@ import com.oracle.svm.hosted.reflect.ReflectionFeature;
 public final class DynamicProxyFeature implements InternalFeature {
     private int loadedConfigurations;
     private Field proxyCacheField;
+    private ProxyRegistry proxyRegistry;
 
     @Override
     public List<Class<? extends Feature>> getRequiredFeatures() {
@@ -59,16 +61,22 @@ public final class DynamicProxyFeature implements InternalFeature {
     }
 
     @Override
-    public void duringSetup(DuringSetupAccess a) {
-        DuringSetupAccessImpl access = (DuringSetupAccessImpl) a;
-
+    public void afterRegistration(AfterRegistrationAccess a) {
+        FeatureImpl.AfterRegistrationAccessImpl access = (FeatureImpl.AfterRegistrationAccessImpl) a;
         ImageClassLoader imageClassLoader = access.getImageClassLoader();
         DynamicProxySupport dynamicProxySupport = new DynamicProxySupport();
         ImageSingletons.add(DynamicProxyRegistry.class, dynamicProxySupport);
         ImageSingletons.add(RuntimeProxyCreationSupport.class, dynamicProxySupport);
         ConfigurationTypeResolver typeResolver = new ConfigurationTypeResolver("resource configuration", imageClassLoader);
-        ProxyRegistry proxyRegistry = new ProxyRegistry(typeResolver, dynamicProxySupport, imageClassLoader);
+        proxyRegistry = new ProxyRegistry(typeResolver, dynamicProxySupport, imageClassLoader);
         ImageSingletons.add(ProxyRegistry.class, proxyRegistry);
+    }
+
+    @Override
+    public void duringSetup(DuringSetupAccess a) {
+        DuringSetupAccessImpl access = (DuringSetupAccessImpl) a;
+        ImageClassLoader imageClassLoader = access.getImageClassLoader();
+
         ProxyConfigurationParser parser = new ProxyConfigurationParser(ConfigurationFiles.Options.StrictConfiguration.getValue(),
                         (cond, intfs) -> proxyRegistry.accept(new ConditionalElement<>(cond, intfs)));
         loadedConfigurations = ConfigurationParserUtils.parseAndRegisterConfigurations(parser, imageClassLoader, "dynamic proxy",
