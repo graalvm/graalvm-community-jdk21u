@@ -65,7 +65,8 @@ public final class GraphState {
     private static final EnumSet<StageFlag> LOW_TIER_MANDATORY_STAGES = EnumSet.of(
                     StageFlag.LOW_TIER_LOWERING,
                     StageFlag.EXPAND_LOGIC,
-                    StageFlag.ADDRESS_LOWERING);
+                    StageFlag.ADDRESS_LOWERING,
+                    StageFlag.REMOVE_OPAQUE_VALUES);
     private static final EnumSet<StageFlag> ENTERPRISE_MID_TIER_MANDATORY_STAGES = EnumSet.of(
                     StageFlag.VALUE_PROXY_REMOVAL,
                     StageFlag.SAFEPOINTS_INSERTION,
@@ -626,6 +627,7 @@ public final class GraphState {
         FIXED_READS,
         ADDRESS_LOWERING,
         FINAL_CANONICALIZATION,
+        REMOVE_OPAQUE_VALUES,
         TARGET_VECTOR_LOWERING,
     }
 

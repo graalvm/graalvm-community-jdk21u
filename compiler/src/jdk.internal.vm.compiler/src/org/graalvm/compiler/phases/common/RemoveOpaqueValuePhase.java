@@ -27,6 +27,7 @@ package org.graalvm.compiler.phases.common;
 import java.util.Optional;
 
 import org.graalvm.compiler.nodes.GraphState;
+import org.graalvm.compiler.nodes.GraphState.StageFlag;
 import org.graalvm.compiler.nodes.StructuredGraph;
 import org.graalvm.compiler.nodes.extended.OpaqueValueNode;
 import org.graalvm.compiler.nodes.spi.CoreProviders;
@@ -38,7 +39,9 @@ import org.graalvm.compiler.phases.BasePhase;
 public class RemoveOpaqueValuePhase extends BasePhase<CoreProviders> {
     @Override
     public Optional<NotApplicable> notApplicableTo(GraphState graphState) {
-        return ALWAYS_APPLICABLE;
+        return NotApplicable.ifAny(
+                        NotApplicable.unlessRunAfter(this, StageFlag.LOW_TIER_LOWERING, graphState),
+                        NotApplicable.ifApplied(this, StageFlag.REMOVE_OPAQUE_VALUES, graphState));
     }
 
     public boolean shouldApply(StructuredGraph graph) {
@@ -50,5 +53,11 @@ public class RemoveOpaqueValuePhase extends BasePhase<CoreProviders> {
         for (OpaqueValueNode opaque : graph.getNodes(OpaqueValueNode.TYPE)) {
             opaque.replaceAtUsagesAndDelete(opaque.getValue());
         }
+    }
+
+    @Override
+    public void updateGraphState(GraphState graphState) {
+        super.updateGraphState(graphState);
+        graphState.setAfterStage(StageFlag.REMOVE_OPAQUE_VALUES);
     }
 }
