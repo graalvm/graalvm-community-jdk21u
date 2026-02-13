@@ -704,7 +704,9 @@ public abstract class AArch64ASIMDAssembler {
         CMHS(UBit | 0b00111 << 11),
         USHL(UBit | 0b01000 << 11),
         UMAX(UBit | 0b01100 << 11),
+        UMAXP(UBit | 0b10100 << 11),
         UMIN(UBit | 0b01101 << 11),
+        UMINP(UBit | 0b10101 << 11),
         SUB(UBit | 0b10000 << 11),
         CMEQ(UBit | 0b10001 << 11),
         MLS(UBit | 0b10010 << 11),
@@ -3557,6 +3559,31 @@ public abstract class AArch64ASIMDAssembler {
     }
 
     /**
+     * C7.2.361 Unsigned maximum pairwise.<br>
+     *
+     * <code>
+     *     concat = src2:src1
+     *     for i in 0..n-1 do dst[i] = uint_max(concat[2 * i], concat[2 * i + 1])
+     * </code>
+     *
+     * @param size register size.
+     * @param eSize element size.
+     * @param dst SIMD register.
+     * @param src1 SIMD register.
+     * @param src2 SIMD register.
+     */
+    public void umaxpVVV(ASIMDSize size, ElementSize eSize, Register dst, Register src1, Register src2) {
+        assert usesMultipleLanes(size, eSize) : "Must use multiple lanes " + size + " " + eSize;
+
+        assert dst.getRegisterCategory().equals(SIMD) : dst;
+        assert src1.getRegisterCategory().equals(SIMD) : src1;
+        assert src2.getRegisterCategory().equals(SIMD) : src2;
+        assert eSize != ElementSize.DoubleWord : "Invalid lane width for umaxp";
+
+        threeSameEncoding(ASIMDInstruction.UMAXP, size, elemSizeXX(eSize), dst, src1, src2);
+    }
+
+    /**
      * C7.2.362 Unsigned maximum across vector.<br>
      *
      * <code>dst = uint_max(src[0], ..., src[n]).</code>
@@ -3567,8 +3594,8 @@ public abstract class AArch64ASIMDAssembler {
      * @param src SIMD register.
      */
     public void umaxvSV(ASIMDSize size, ElementSize elementSize, Register dst, Register src) {
-        assert dst.getRegisterCategory().equals(SIMD);
-        assert src.getRegisterCategory().equals(SIMD);
+        assert dst.getRegisterCategory().equals(SIMD) : dst;
+        assert src.getRegisterCategory().equals(SIMD) : src;
         assert !(size == ASIMDSize.HalfReg && elementSize == ElementSize.Word) : "Invalid size and lane combination for umaxv";
         assert elementSize != ElementSize.DoubleWord : "Invalid lane width for umaxv";
 
@@ -3595,6 +3622,31 @@ public abstract class AArch64ASIMDAssembler {
         assert eSize != ElementSize.DoubleWord : "Invalid lane width for umin";
 
         threeSameEncoding(ASIMDInstruction.UMIN, size, elemSizeXX(eSize), dst, src1, src2);
+    }
+
+    /**
+     * C7.2.364 Unsigned minimum pairwise.<br>
+     *
+     * <code>
+     *     concat = src2:src1
+     *     for i in 0..n-1 do dst[i] = uint_min(concat[2 * i], concat[2 * i + 1])
+     * </code>
+     *
+     * @param size register size.
+     * @param eSize element size.
+     * @param dst SIMD register.
+     * @param src1 SIMD register.
+     * @param src2 SIMD register.
+     */
+    public void uminpVVV(ASIMDSize size, ElementSize eSize, Register dst, Register src1, Register src2) {
+        assert usesMultipleLanes(size, eSize) : "Must use multiple lanes " + size + " " + eSize;
+
+        assert dst.getRegisterCategory().equals(SIMD) : dst;
+        assert src1.getRegisterCategory().equals(SIMD) : src1;
+        assert src2.getRegisterCategory().equals(SIMD) : src2;
+        assert eSize != ElementSize.DoubleWord : "Invalid lane width for uminp";
+
+        threeSameEncoding(ASIMDInstruction.UMINP, size, elemSizeXX(eSize), dst, src1, src2);
     }
 
     /**

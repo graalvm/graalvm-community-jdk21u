@@ -202,8 +202,7 @@ public final class AArch64ArrayRegionCompareToOp extends AArch64ComplexVectorOp 
         asm.neon.eorVVV(FullReg, vecTmp1, vecArrayA1, vecArrayB1);
         asm.neon.eorVVV(FullReg, vecTmp2, vecArrayA2, vecArrayB2);
         asm.neon.orrVVV(FullReg, vecTmp2, vecTmp2, vecTmp1);
-        vectorCheckZero(asm, vecTmp2, vecTmp2);
-        asm.branchConditionally(ConditionFlag.NE, diffFound);
+        cbnzVector(asm, ElementSize.Byte, vecTmp2, vecTmp2, tmp, false, diffFound);
         // if so, continue
         asm.cmp(64, maxStrideArray, refAddress);
         asm.branchConditionally(ConditionFlag.LO, vectorLoop);
@@ -218,8 +217,7 @@ public final class AArch64ArrayRegionCompareToOp extends AArch64ComplexVectorOp 
         asm.neon.eorVVV(FullReg, vecTmp1, vecArrayA1, vecArrayB1);
         asm.neon.eorVVV(FullReg, vecTmp2, vecArrayA2, vecArrayB2);
         asm.neon.orrVVV(FullReg, vecTmp2, vecTmp2, vecTmp1);
-        vectorCheckZero(asm, vecTmp2, vecTmp2);
-        asm.branchConditionally(ConditionFlag.NE, diffFound);
+        cbnzVector(asm, ElementSize.Byte, vecTmp2, vecTmp2, tmp, false, diffFound);
         asm.mov(64, ret, zr);
         asm.jmp(end);
 
@@ -239,8 +237,7 @@ public final class AArch64ArrayRegionCompareToOp extends AArch64ComplexVectorOp 
         asm.align(PREFERRED_BRANCH_TARGET_ALIGNMENT);
         asm.bind(diffFound);
         // check if vecArrayA1 and vecArrayB1 are equal
-        vectorCheckZero(asm, vecTmp1, vecTmp1);
-        asm.branchConditionally(ConditionFlag.NE, returnV1);
+        cbnzVector(asm, ElementSize.Byte, vecTmp1, vecTmp1, tmp, false, returnV1);
         calcReturnValue(asm, ret, vecArrayA2, vecArrayB2, vecArrayA1, vecArrayB1, vecMask, strideMax);
         asm.jmp(end);
 
@@ -295,11 +292,9 @@ public final class AArch64ArrayRegionCompareToOp extends AArch64ComplexVectorOp 
     private static void calcReturnValue(AArch64MacroAssembler asm, Register ret, Register vecArrayA, Register vecArrayB, Register vecTmp, Register vecIndex, Register vecMask, Stride strideMax) {
         // set all equal bytes to 0xff, others to 0x00
         asm.neon.cmeqVVV(FullReg, fromStride(strideMax), vecTmp, vecArrayA, vecArrayB);
-        // BIC with the ascending index mask, this will replace all non-equal bytes with their
-        // corresponding byte index
-        asm.neon.bicVVV(FullReg, vecIndex, vecMask, vecTmp);
-        // OR with the result of CMEQ, replacing all equal bytes with 0xff again
-        asm.neon.orrVVV(FullReg, vecIndex, vecIndex, vecTmp);
+        // OR with the ascending index mask, this will replace all non-equal bytes with their
+        // corresponding byte index, and all equal bytes with 0xff
+        asm.neon.orrVVV(FullReg, vecIndex, vecMask, vecTmp);
         // Get the unsigned minimum. This will yield the index of the first non-equal bytes, since
         // all equal ones are filled with 0xff
         asm.neon.uminvSV(FullReg, fromStride(strideMax), vecIndex, vecIndex);
