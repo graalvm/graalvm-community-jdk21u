@@ -631,9 +631,11 @@ public final class AArch64ArrayIndexOfOp extends AArch64ComplexVectorOp {
                 break;
         }
         masm.neon.orrVVV(FullReg, vecTmp[0], vecArray1, vecArray2);
-        /* If value != 0, then there was a match somewhere. */
-        vectorCheckZero(masm, ElementSize.fromStride(getMatchResultStride()), vecTmp[0], vecTmp[0], variant != ArrayIndexOfVariant.Table);
-        masm.branchConditionally(ConditionFlag.NE, matchInChunk);
+        try (ScratchRegister sc = masm.getScratchRegister()) {
+            Register tmp = sc.getRegister();
+            /* If value != 0, then there was a match somewhere. */
+            cbnzVector(masm, ElementSize.fromStride(getMatchResultStride()), vecTmp[0], vecTmp[0], tmp, variant != ArrayIndexOfVariant.Table, matchInChunk);
+        }
     }
 
     private Stride getMatchResultStride() {

@@ -156,9 +156,9 @@ public final class AArch64VectorizedMismatchOp extends AArch64ComplexVectorOp {
         asm.neon.eorVVV(FullReg, vecArrayA1, vecArrayA1, vecArrayB1);
         asm.neon.eorVVV(FullReg, vecArrayA2, vecArrayA2, vecArrayB2);
         asm.neon.orrVVV(FullReg, vecArrayB1, vecArrayA1, vecArrayA2);
-        asm.neon.umaxvSV(FullReg, ElementSize.Word, vecArrayB1, vecArrayB1);
-        asm.fcmpZero(64, vecArrayB1);
-        asm.branchConditionally(ConditionFlag.NE, diffFound);
+        asm.neon.umaxpVVV(FullReg, ElementSize.Word, vecArrayB1, vecArrayB1, vecArrayB1);
+        asm.neon.umovGX(ElementSize.DoubleWord, tmp, vecArrayB1, 0);
+        asm.cbnz(64, tmp, diffFound);
         asm.cmp(64, arrayA, refAddress);
         asm.branchConditionally(ConditionFlag.LO, vectorLoop);
 
@@ -172,9 +172,9 @@ public final class AArch64VectorizedMismatchOp extends AArch64ComplexVectorOp {
         asm.neon.eorVVV(FullReg, vecArrayA1, vecArrayA1, vecArrayB1);
         asm.neon.eorVVV(FullReg, vecArrayA2, vecArrayA2, vecArrayB2);
         asm.neon.orrVVV(FullReg, vecArrayB1, vecArrayA1, vecArrayA2);
-        asm.neon.umaxvSV(FullReg, ElementSize.Word, vecArrayB1, vecArrayB1);
-        asm.fcmpZero(64, vecArrayB1);
-        asm.branchConditionally(ConditionFlag.EQ, retEqual);
+        asm.neon.umaxpVVV(FullReg, ElementSize.Word, vecArrayB1, vecArrayB1, vecArrayB1);
+        asm.neon.umovGX(ElementSize.DoubleWord, tmp, vecArrayB1, 0);
+        asm.cbz(64, tmp, retEqual);
 
         asm.align(PREFERRED_BRANCH_TARGET_ALIGNMENT);
         asm.bind(diffFound);
