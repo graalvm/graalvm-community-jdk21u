@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1325,6 +1326,9 @@ public class AMD64ArithmeticLIRGenerator extends ArithmeticLIRGenerator implemen
                 break;
             case DOUBLE:
                 getLIRGen().append(new AMD64BinaryConsumer.MemoryMROp(SSEMROp.MOVSD, SD, address, value, state));
+                break;
+            case V128_DOUBLE:
+                getLIRGen().append(new AMD64BinaryConsumer.MemoryMROp(SSEMROp.MOVUPD, PD, address, value, state));
                 break;
             default:
                 throw GraalError.shouldNotReachHereUnexpectedValue(kind); // ExcludeFromJacocoGeneratedReport
