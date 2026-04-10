@@ -88,6 +88,7 @@ import com.oracle.svm.core.graal.nodes.CEntryPointEnterNode;
 import com.oracle.svm.core.graal.nodes.CEntryPointLeaveNode;
 import com.oracle.svm.core.graal.nodes.CEntryPointUtilityNode;
 import com.oracle.svm.core.graal.nodes.WriteCurrentVMThreadNode;
+import com.oracle.svm.core.heap.Heap;
 import com.oracle.svm.core.heap.PhysicalMemory;
 import com.oracle.svm.core.heap.ReferenceHandler;
 import com.oracle.svm.core.heap.ReferenceHandlerThread;
@@ -244,6 +245,7 @@ public final class CEntryPointSnippets extends SubstrateTemplates implements Sni
     @Uninterruptible(reason = "Thread state not yet set up.")
     @NeverInline(value = "Ensure this code cannot rise above where heap base is set.")
     private static int createIsolate0(Isolate isolate, CEntryPointCreateIsolateParameters parameters, CLongPointer parsedArgs) {
+        assert Heap.getHeap().verifyImageHeapMapping();
         IsolateArgumentParser.persistOptions(parameters, parsedArgs);
         IsolateListenerSupport.singleton().afterCreateIsolate(isolate);
 
