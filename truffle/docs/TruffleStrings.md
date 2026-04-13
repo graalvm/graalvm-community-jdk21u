@@ -273,8 +273,10 @@ Every `TruffleString` is encoded in a specific internal encoding, which is set d
 `TruffleString` is fully optimized for the following encodings:
 
 * `UTF-8`
-* `UTF-16`
-* `UTF-32`
+* `UTF-16LE`
+* `UTF-16BE`
+* `UTF-32LE`
+* `UTF-32BE`
 * `US-ASCII`
 * `ISO-8859-1`
 * `BYTES`
@@ -349,6 +351,9 @@ abstract static class SomeNode extends Node {
     }
 }
 ```
+
+For optimal performance, the `expectedEncoding` parameter of `TruffleString` nodes should be partial-evaluation-constant whenever possible. `TruffleString` nodes don't profile this parameter, since most languages use a single constant encoding.
+
 
 ### String Properties
 
