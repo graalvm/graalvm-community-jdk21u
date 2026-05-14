@@ -882,6 +882,7 @@ public class AMD64Assembler extends AMD64BaseAssembler {
         // MOVSS and MOVSD are the same opcode, just with different operand size prefix
         public static final SSEMROp MOVSS = new SSEMROp("MOVSS",      P_0F, 0x11, PreferredNDS.SRC,  OpAssertion.SingleAssertion);
         public static final SSEMROp MOVSD = new SSEMROp("MOVSD",      P_0F, 0x11, PreferredNDS.SRC,  OpAssertion.DoubleAssertion);
+        public static final SSEMROp MOVUPD = new SSEMROp("MOVUPD", 0x66, P_0F, 0x11, PreferredNDS.NONE, OpAssertion.PackedDoubleAssertion);
         // @formatter:on
 
         private final PreferredNDS preferredNDS;
