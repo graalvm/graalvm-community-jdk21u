@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,6 +30,7 @@ import static org.graalvm.compiler.nodeinfo.NodeSize.SIZE_0;
 import org.graalvm.compiler.core.common.type.Stamp;
 import org.graalvm.compiler.graph.NodeClass;
 import org.graalvm.compiler.nodeinfo.NodeInfo;
+import org.graalvm.compiler.nodes.extended.OpaqueValueNode;
 import org.graalvm.compiler.nodes.ConstantNode;
 import org.graalvm.compiler.nodes.FixedGuardNode;
 import org.graalvm.compiler.nodes.FixedWithNextNode;
@@ -114,10 +115,11 @@ public abstract class VirtualFrameAccessorNode extends FixedWithNextNode impleme
             tool.delete();
         } else {
             /*
-             * Even though all usages will be eventually dead, we need to provide a valid
-             * replacement value for now.
+             * Even though all usages will be eventually dead, we need to provide a placeholder
+             * replacement value for now. This must be opaque to prevent transformations based on
+             * this value before the deletion takes effect.
              */
-            ConstantNode unusedValue = ConstantNode.forConstant(JavaConstant.defaultForKind(getStackKind()), tool.getMetaAccess());
+            ValueNode unusedValue = new OpaqueValueNode(ConstantNode.forConstant(JavaConstant.defaultForKind(getStackKind()), tool.getMetaAccess()));
             tool.addNode(unusedValue);
             tool.replaceWith(unusedValue);
         }
