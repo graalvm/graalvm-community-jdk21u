@@ -1342,6 +1342,7 @@ public class HostInliningPhase extends AbstractInliningPhase {
                         info.isTruffleBoundary() ||
                         types.isInInterpreter(callee) ||
                         types.isInInterpreterFastPath(callee) ||
+                        types.isHasNextTier(callee) ||
                         types.isTransferToInterpreterMethod(callee));
     }
 
