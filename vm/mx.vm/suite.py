@@ -49,7 +49,8 @@ suite = {
             },
             {
                 "name": "truffleruby",
-                "version": "df8c283ea8525df0f82007b2b8461bd0461f8cb9",
+                # tag graal-23.1.2 in https://github.com/truffleruby/truffleruby, the last public 23.1 commit
+                "version": "e86d3721c8ab04a0f64f394ecd457cf84a3f394d",
                 "dynamic": True,
                 "urls": [
                     {"url": "https://github.com/oracle/truffleruby.git", "kind": "git"},
